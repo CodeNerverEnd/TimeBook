@@ -1,0 +1,15 @@
+# 构建产物
+/build/
+/app/build/
+/dist/
+.gradle/
+local.properties
+
+# 签名文件（含私钥与密码，绝对不要提交或外发）
+keystore/
+keystore.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store

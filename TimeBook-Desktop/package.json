@@ -1,0 +1,50 @@
+{
+  "name": "timebook-desktop",
+  "version": "2.1.0",
+  "description": "TimeBook 桌面版 · 柳比歇夫时间统计",
+  "main": "main.js",
+  "author": "TimeBook",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node tools/make-icon.js",
+    "dist": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.timebook.desktop",
+    "productName": "TimeBook",
+    "copyright": "TimeBook",
+    "directories": {
+      "output": "../dist-desktop",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "build/icon.png",
+      "build/tray.png",
+      "build/tray.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "portable": {
+      "artifactName": "TimeBook-${version}-桌面版.exe"
+    },
+    "compression": "maximum"
+  }
+}

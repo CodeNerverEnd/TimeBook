@@ -1,0 +1,30 @@
+# 本机与构建产物
+.workbuddy/
+.tools/
+.edgetmp/
+*.log
+
+# Android
+TimeBook/.gradle/
+TimeBook/build/
+TimeBook/app/build/
+TimeBook/.kotlin/
+TimeBook/local.properties
+TimeBook/keystore/
+TimeBook/keystore.properties
+
+# Electron
+TimeBook-Desktop/node_modules/
+TimeBook-Desktop/.shot-*.png
+dist-desktop/win-unpacked/
+dist-desktop/old/
+dist-desktop/.icon-ico/
+dist-desktop/builder-debug.yml
+
+# 大于 GitHub 100MB 单文件限制的安装包，走 Releases 附件，不进仓库
+*.exe
+
+# 临时验证脚本
+**/.*.js
+**/.check-*
+tb-proto.html

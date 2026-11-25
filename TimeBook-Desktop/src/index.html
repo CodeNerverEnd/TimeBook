@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<title>TimeBook</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">时</div>
+      <div>
+        <div class="brand-name">TimeBook</div>
+        <div class="brand-sub">柳比歇夫时间统计</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="nav-sep"></div>
+      <div class="navitem" id="navBackup" data-page="backup"></div>
+      <div class="side-ver" id="sideVer">v2.0 · 本地数据</div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="tb-left">
+        <div class="tb-date" id="tbDate"></div>
+        <div class="tb-sub" id="tbSub"></div>
+      </div>
+      <div class="tb-right" id="tbRight"></div>
+    </header>
+    <div class="scroll" id="scroll"></div>
+  </main>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+<div class="toast" id="toast"></div>
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

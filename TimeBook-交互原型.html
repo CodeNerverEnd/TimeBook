@@ -1,0 +1,2348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TimeBook · 交互原型</title>
+<style>
+  :root{
+    --primary:#2F6B4F;
+    --primary-container:#DCEBE1;
+    --on-primary-container:#0E2C1C;
+    --secondary:#B4803A;
+    --bg:#FAF8F3;
+    --surface:#FFFFFF;
+    --surface-variant:#EFEBE2;
+    --on-surface:#1C1B18;
+    --on-surface-variant:#6B655B;
+    --outline:#D9D3C7;
+    --error:#B3261E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:#E9E4D9;font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--on-surface);}
+  body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh;}
+  #stage{width:390px;height:844px;transform-origin:top center;}
+
+  .phone{
+    position:relative;width:390px;height:844px;background:var(--bg);
+    border-radius:38px;overflow:hidden;
+    box-shadow:0 24px 60px rgba(28,27,24,.28),0 0 0 10px #1C1B18,0 0 0 11px #3A3730;
+    display:flex;flex-direction:column;
+  }
+  .statusbar{
+    height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;font-size:12px;font-weight:600;letter-spacing:.2px;color:#1C1B18;
+  }
+  .statusbar .right{display:flex;gap:5px;align-items:center;opacity:.85;}
+  .content{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+  .content::-webkit-scrollbar{width:0;}
+
+  /* ---------- 底部导航 ---------- */
+  .navbar{
+    flex:0 0 74px;display:flex;align-items:center;justify-content:space-around;
+    background:#F4F1E9;border-top:1px solid var(--outline);padding-bottom:6px;
+  }
+  .navitem{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:#8A8478;cursor:pointer;width:56px;padding-top:8px;}
+  .navitem svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  .navitem.active{color:var(--primary);}
+  .navitem .pill{position:absolute;}
+
+  /* ---------- 通用 ---------- */
+  .pad{padding:0 16px;}
+  .title-lg{font-size:28px;font-weight:600;letter-spacing:.5px;}
+  .title-md{font-size:17px;font-weight:600;}
+  .title-sm{font-size:14px;font-weight:600;}
+  .body{font-size:14px;}
+  .small{font-size:12px;color:var(--on-surface-variant);}
+  .muted{color:var(--on-surface-variant);}
+  .card{background:var(--surface);border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(28,27,24,.05);}
+  .row{display:flex;align-items:center;}
+  .grow{flex:1;min-width:0;}
+  .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
+  .gap6{gap:6px}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}
+  .h14{height:14px}.h20{height:20px}
+  .ellipsis{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .fab{
+    position:absolute;right:16px;bottom:92px;height:52px;padding:0 20px;border-radius:16px;
+    background:var(--primary);color:#fff;display:flex;align-items:center;gap:8px;
+    font-size:14px;font-weight:600;box-shadow:0 6px 16px rgba(47,107,79,.35);cursor:pointer;
+  }
+
+  /* ---------- 计时页 ---------- */
+  .today-total{font-size:30px;font-weight:600;letter-spacing:.5px;}
+  .running-card{
+    background:linear-gradient(160deg,#DCEBE1 0%,#CFE3D6 100%);
+    border-radius:20px;padding:20px;position:relative;overflow:hidden;
+  }
+  .running-card.idle{background:linear-gradient(160deg,#F1EDE3 0%,#E7E1D3 100%);}
+  .clock{font-size:44px;font-weight:200;letter-spacing:1px;font-variant-numeric:tabular-nums;color:var(--on-primary-container);margin:6px 0 2px;}
+  .btn{
+    height:46px;border-radius:14px;border:none;font-size:15px;font-weight:600;width:100%;
+    background:var(--primary);color:#fff;cursor:pointer;
+  }
+  .btn:active{opacity:.85;}
+  .btn-ghost{background:transparent;color:var(--primary);border:1.5px solid var(--primary);}
+  .item-card{
+    background:var(--surface);border-radius:16px;padding:13px 16px;display:flex;align-items:center;gap:12px;
+    box-shadow:0 1px 2px rgba(28,27,24,.05);cursor:pointer;transition:transform .08s ease;
+  }
+  .item-card:active{transform:scale(.985);}
+  .item-card.running{background:var(--primary-container);box-shadow:none;}
+  .play-ic{width:26px;height:26px;color:var(--primary);}
+
+  /* ---------- 记录页 ---------- */
+  .period{display:flex;align-items:center;padding:6px 8px;}
+  .chev{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:#5C574D;}
+  .chev:active{background:var(--surface-variant);}
+  .chev svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;}
+  .recrow{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:16px;padding:12px 8px 12px 16px;box-shadow:0 1px 2px rgba(28,27,24,.05);cursor:pointer;}
+  .del-ic{width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:#9A948A;border-radius:50%;}
+  .del-ic:active{background:#F3EEE3;}
+
+  /* ---------- 统计页 ---------- */
+  .tabs{display:flex;border-bottom:1px solid var(--outline);}
+  .tab{flex:1;text-align:center;padding:14px 0 12px;font-size:14px;color:var(--on-surface-variant);cursor:pointer;position:relative;}
+  .tab.active{color:var(--primary);font-weight:600;}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--primary);border-radius:3px 3px 0 0;}
+  .total-card{background:linear-gradient(160deg,#DCEBE1 0%,#CFE3D6 100%);border-radius:20px;padding:18px 20px;}
+  .chart{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:14px;}
+  .chart .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;}
+  .chart .bar{width:100%;height:100%;border-radius:3px;position:relative;}
+  .chart .bar span{position:absolute;left:0;right:0;bottom:0;background:var(--primary);border-radius:3px;}
+  .chart-labels{display:flex;margin-top:4px;}
+  .chart-labels div{flex:1;text-align:center;font-size:9px;color:var(--on-surface-variant);}
+  .track{height:6px;border-radius:3px;background:var(--surface-variant);overflow:hidden;margin-top:8px;}
+  .track > i{display:block;height:100%;border-radius:3px;}
+
+  /* ---------- 弹窗 ---------- */
+  .overlay{position:absolute;inset:0;background:rgba(28,27,24,.45);display:flex;align-items:center;justify-content:center;padding:24px;z-index:200;}
+  .dialog{background:var(--surface);border-radius:26px;padding:22px;width:100%;max-width:330px;max-height:88%;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .dialog h3{margin:0 0 16px;font-size:18px;font-weight:600;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--on-surface-variant);margin-bottom:6px;}
+  .input{
+    width:100%;height:44px;border-radius:10px;border:1px solid var(--outline);background:transparent;
+    padding:0 12px;font-size:14px;color:var(--on-surface);font-family:inherit;
+  }
+  .input:focus{outline:none;border-color:var(--primary);}
+  .color-row{display:flex;gap:12px;margin-bottom:12px;}
+  .swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+  .swatch.sel{border-color:var(--on-surface);}
+  .dialog-actions{display:flex;justify-content:flex-end;gap:4px;margin-top:8px;}
+  /* ---------- 底部备注面板 ---------- */
+  .overlay.sheet-wrap{align-items:flex-end;padding:0;}
+  .sheet{width:100%;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px 20px;
+    box-shadow:0 -10px 40px rgba(28,27,24,.22);animation:sheetin .2s ease-out;}
+  @keyframes sheetin{from{transform:translateY(28px);opacity:.4}to{transform:none;opacity:1}}
+  .sheet .grab{width:38px;height:4px;border-radius:2px;background:var(--outline);margin:0 auto 14px;}
+  .sheet h3{margin:0;font-size:17px;font-weight:600;}
+  .sheet textarea.input{min-height:74px;font-size:14px;}
+  .note-words{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 2px;}
+  .note-words .chip{height:30px;font-size:12.5px;padding:0 10px;}
+  .recnote{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    width:100%;margin-top:5px;font-size:12.5px;color:#55503f;background:#F5F2EA;border-radius:8px;
+    padding:5px 9px;line-height:1.5;border-left:2px solid var(--outline);}
+  .recnote.add{background:transparent;border-left:none;padding:2px 0;color:#A8A29A;font-size:12px;}
+  .run-note{margin-top:10px;background:rgba(255,255,255,.55);border-radius:10px;padding:7px 10px;font-size:12.5px;
+    color:#3A5A46;line-height:1.5;display:flex;gap:8px;align-items:flex-start;}
+  .run-note .tx{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tbtn{padding:10px 14px;border-radius:10px;border:none;background:transparent;color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;}
+  .tbtn.plain{color:var(--on-surface-variant);font-weight:500;}
+  .tbtn.danger{color:var(--error);}
+  .selectbtn{
+    width:100%;height:44px;border-radius:10px;border:1px solid var(--outline);background:transparent;
+    padding:0 12px;font-size:14px;text-align:left;cursor:pointer;color:var(--on-surface);font-family:inherit;
+  }
+  .pickerlist{border:1px solid var(--outline);border-radius:12px;margin-top:6px;overflow:hidden;}
+  .pickerlist div{padding:12px 14px;font-size:14px;border-bottom:1px solid #F1ECE2;cursor:pointer;}
+  .pickerlist div:last-child{border-bottom:none;}
+  .pickerlist div:active{background:var(--surface-variant);}
+  .snackbar{
+    position:absolute;left:16px;right:16px;bottom:96px;background:#2E2C26;color:#F5F1E8;
+    border-radius:12px;padding:12px 16px;font-size:13px;z-index:80;opacity:0;transform:translateY(8px);
+    transition:all .22s ease;pointer-events:none;
+  }
+  .snackbar.show{opacity:1;transform:translateY(0);}
+  .hint{border-radius:16px;padding:18px;text-align:center;color:var(--on-surface-variant);font-size:13px;line-height:1.7;}
+  .divider{height:1px;background:#F0EBE0;margin:10px 0;}
+
+  /* ---------- 目标时长 / 到点提醒 ---------- */
+  .running-card.over{background:linear-gradient(160deg,#F8E9CB 0%,#F0D8A8 100%);}
+  .btn-mid{
+    height:46px;padding:0 16px;border-radius:14px;border:1.5px solid rgba(28,27,24,.14);
+    background: rgba(255,255,255,.55);color:var(--on-primary-container);font-size:14px;font-weight:600;
+    cursor:pointer;white-space:nowrap;font-family:inherit;
+  }
+  .demo-link{text-align:center;font-size:12px;color:#5C7A66;margin-top:10px;text-decoration:underline;cursor:pointer;}
+  .chip{
+    display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 12px;border-radius:10px;
+    border:1px solid var(--outline);background:transparent;font-size:13px;color:var(--on-surface);cursor:pointer;font-family:inherit;
+  }
+  .chip.sel{border-color:var(--primary);background:var(--primary-container);color:#173B28;font-weight:600;}
+  /* ---------- 标签 / 计划 ---------- */
+  .tagchip{display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:7px;font-size:11px;font-weight:500;white-space:nowrap;}
+  .hrow{display:flex;gap:8px;overflow-x:auto;padding:2px 16px;}
+  .hrow::-webkit-scrollbar{height:0;}
+  .filterchip{display:inline-flex;align-items:center;height:32px;padding:0 13px;border-radius:16px;background:var(--surface);font-size:13px;color:var(--on-surface-variant);cursor:pointer;white-space:nowrap;box-shadow:0 1px 2px rgba(28,27,24,.04);}
+  .filterchip.sel{font-weight:600;}
+  .tagpick{display:inline-flex;align-items:center;height:34px;padding:0 11px;border-radius:10px;border:1px solid var(--outline);font-size:13px;color:var(--on-surface-variant);cursor:pointer;white-space:nowrap;margin:0 8px 8px 0;}
+  .tagpick.sel{font-weight:600;}
+  .plan-row{cursor:pointer;}
+  .pk-list{max-height:320px;overflow-y:auto;margin:0 -6px;}
+  .pk-list::-webkit-scrollbar{width:0;}
+  .pk-row{display:flex;align-items:center;gap:9px;padding:10px 8px;border-radius:13px;cursor:pointer;}
+  .pk-row:active{background:var(--surface-variant);}
+  .pk-name{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pk-sub{font-size:11.5px;color:var(--on-surface-variant);margin-top:2px;line-height:1.55;}
+  .pk-val{font-size:12px;font-weight:600;white-space:nowrap;flex:0 0 auto;}
+  .pk-go{color:#B0AAA0;font-size:16px;flex:0 0 auto;line-height:1;}
+  .add-cb{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:16px;background:var(--primary);color:#fff;font-size:13px;font-weight:600;flex:0 0 auto;cursor:pointer;box-shadow:0 2px 6px rgba(47,107,79,.28);}
+  .add-cb:active{opacity:.85;}
+  .add-line{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;padding:12px;border:1px dashed var(--outline);border-radius:14px;font-size:13.5px;font-weight:600;color:var(--primary);cursor:pointer;}
+  .seg{display:flex;background:var(--surface-variant);border-radius:12px;padding:3px;}
+  .seg > div{flex:1;text-align:center;padding:9px 0;font-size:13px;border-radius:9px;cursor:pointer;color:var(--on-surface-variant);position:relative;}
+  .seg > div.on{background:var(--surface);color:var(--on-surface);font-weight:600;box-shadow:0 1px 3px rgba(28,27,24,.1);}
+  .badge-due{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;background:#F0D8A8;color:#6B4408;font-size:11px;font-weight:600;flex:0 0 auto;}
+  .due-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#C08A2E;margin-left:5px;vertical-align:middle;}
+  textarea.input{height:auto;min-height:96px;padding:10px 12px;line-height:1.6;resize:none;}
+  .switch{width:44px;height:26px;border-radius:13px;background:var(--outline);position:relative;cursor:pointer;transition:background .18s;flex:0 0 auto;}
+  .switch.on{background:var(--primary);}
+  .switch i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .18s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .switch.on i{left:21px;}
+  .bk-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--outline);}
+  .bk-row:last-child{border-bottom:none;}
+  .sysnotif{
+    position:absolute;left:10px;right:10px;top:50px;z-index:90;
+    background:rgba(255,255,255,.97);border-radius:22px;padding:12px 14px;display:flex;gap:10px;align-items:center;
+    box-shadow:0 12px 34px rgba(0,0,0,.24);transform:translateY(-160%);
+    transition:transform .34s cubic-bezier(.2,.9,.2,1);
+  }
+  .sysnotif.in{transform:translateY(0);}
+  .sysnotif .ni{width:34px;height:34px;border-radius:11px;background:#FCEFC7;display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto;}
+  .sysnotif .nt{font-size:13px;font-weight:600;}
+  .sysnotif .nb{font-size:11px;color:#6B655B;margin-top:1px;}
+  .sysnotif .na{font-size:12px;color:var(--primary);font-weight:600;padding:7px 10px;border-radius:9px;background:var(--primary-container);white-space:nowrap;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="phone">
+    <div class="statusbar">
+      <span id="sb-time">10:22</span>
+      <div class="right"><span>5G</span><span>82%</span></div>
+    </div>
+
+    <div class="content" id="content"></div>
+
+    <div class="navbar" id="navbar">
+      <div class="navitem" data-tab="timer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></svg><span>计时</span>
+      </div>
+      <div class="navitem" data-tab="records">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>记录</span>
+      </div>
+      <div class="navitem" data-tab="stats">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>统计</span>
+      </div>
+      <div class="navitem" data-tab="plan">
+        <svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="5"/></svg>
+        <span>计划</span>
+      </div>
+      <div class="navitem" data-tab="items">
+        <svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4"/><path d="M3 17l9 4 9-4"/></svg><span>事项</span>
+      </div>
+    </div>
+
+    <div class="snackbar" id="snackbar"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   原型数据（全部在内存里，刷新即重置）
+   ========================================================= */
+const HOUR = 3600000, MIN = 60000, DAY = 86400000;
+const now0 = Date.now();
+function startOfDay(t){ const d=new Date(t); d.setHours(0,0,0,0); return d.getTime(); }
+const D0 = startOfDay(now0);
+
+let itemSeq = 6, recSeq = 1, tagSeq = 5;
+
+function monthKey(ts){ const d=new Date(ts); return d.getFullYear()+'-'+pad(d.getMonth()+1); }
+function yearKey(ts){ return String(new Date(ts).getFullYear()); }
+// 五年计划按「2021 起算的五年规划」对齐：2021-2025、2026-2030 …
+const FIVE_BASE = 2021;
+function fiveStart(y){ return FIVE_BASE + Math.floor((y-FIVE_BASE)/5)*5; }
+function fiveKey(ts){ const y0 = fiveStart(new Date(ts).getFullYear()); return y0+'-'+(y0+4); }
+function prevMonthKey(ts){ const d=new Date(ts); return monthKey(new Date(d.getFullYear(), d.getMonth()-1, 1).getTime()); }
+
+const state = {
+  tab: 'timer',
+  tags: [
+    {id:1, name:'工作', color:'#2F6B4F', note:''},
+    {id:2, name:'读书', color:'#9B4E6B', note:'每天 30 页'},
+    {id:3, name:'生活', color:'#B4803A', note:''},
+    {id:4, name:'休闲', color:'#4A5A63', note:''}
+  ],
+  items: [
+    {id:1, name:'写代码',  color:'#2F6B4F', note:'', archived:false, targetMin:45, tagIds:[1]},
+    {id:2, name:'开会',    color:'#3C6E9C', note:'', archived:false, targetMin:60, tagIds:[1]},
+    {id:3, name:'《三体》', color:'#9B4E6B', note:'每天 30 页', archived:false, targetMin:30, tagIds:[2]},
+    {id:4, name:'通勤',    color:'#B4803A', note:'', archived:false, targetMin:0, tagIds:[3,4]},
+    {id:5, name:'刷手机',  color:'#4A5A63', note:'', archived:true, targetMin:0, tagIds:[4]}
+  ],
+  // 计划目标：kind='tag' 挂标签，kind='item' 挂具体事项
+  plans: [
+    {type:'month', key: monthKey(D0), kind:'tag',  refId:1, minutes: 40*60},
+    {type:'month', key: monthKey(D0), kind:'tag',  refId:2, minutes: 20*60},
+    {type:'month', key: monthKey(D0), kind:'tag',  refId:3, minutes: 20*60},
+    {type:'month', key: monthKey(D0), kind:'item', refId:3, minutes: 18*60},
+    {type:'year',  key: yearKey(D0),  kind:'tag',  refId:1, minutes: 500*60},
+    {type:'year',  key: yearKey(D0),  kind:'tag',  refId:2, minutes: 180*60},
+    {type:'year',  key: yearKey(D0),  kind:'item', refId:3, minutes: 60*60},
+    {type:'five',  key: fiveKey(D0),  kind:'tag',  refId:1, minutes: 2400*60},
+    {type:'five',  key: fiveKey(D0),  kind:'tag',  refId:2, minutes: 900*60},
+    {type:'five',  key: fiveKey(D0),  kind:'tag',  refId:3, minutes: 600*60},
+    // 上个月：已到期但还没写总结，用来演示「待总结」流程
+    {type:'month', key: prevMonthKey(D0), kind:'tag', refId:1, minutes: 40*60},
+    {type:'month', key: prevMonthKey(D0), kind:'tag', refId:2, minutes: 15*60}
+  ],
+  // 计划档案：status = active 进行中 / closed 已归档（带总结快照）
+  planDocs: [
+    {type:'five', key:'2021-2025', status:'closed',
+     closedAt: new Date(2025,11,31,20,10).getTime(),
+     summary:'五年里最扎实的是工作，把主要精力放在专业上，超出目标；读书只完成六成，中期开始被短视频挤占；生活类（家务、通勤）基本稳定。下个五年想把读书时间翻上来，同时给「运动」单独立一个标签。',
+     snapshot:{label:'2021–2025年',
+       totalTargetMin: 4000*60, totalUsed: 3930*HOUR, count: 4218,
+       rows:[
+         {name:'工作', color:'#2F6B4F', targetMin:3000*60, ms:3120*HOUR, n:2960,
+          items:[{name:'写代码', color:'#2F6B4F', targetMin:2200*60, ms:2310*HOUR, n:2140},
+                 {name:'开会',   color:'#3C6E9C', targetMin:800*60,  ms:810*HOUR,  n:820}]},
+         {name:'读书', color:'#9B4E6B', targetMin:600*60,  ms:380*HOUR,  n:700,
+          items:[{name:'《三体》', color:'#9B4E6B', targetMin:200*60, ms:186*HOUR, n:320},
+                 {name:'专业书',     color:'#7A5DA8', targetMin:400*60, ms:194*HOUR, n:380}]},
+         {name:'生活', color:'#B4803A', targetMin:400*60,  ms:430*HOUR,  n:558,
+          items:[{name:'通勤', color:'#B4803A', targetMin:400*60, ms:430*HOUR, n:558}]}
+       ]}},
+    {type:'year', key:'2025', status:'closed',
+     closedAt: new Date(2025,11,31,21,30).getTime(),
+     summary:'年度目标基本达成，工作超了一点，读书没跟上（计划 120 小时只做了 86 小时）。明年把读书拆成「每天 30 分钟」，别攒到周末。',
+     snapshot:{label:'2025年',
+       totalTargetMin: 780*60, totalUsed: 798*HOUR, count: 812,
+       rows:[
+         {name:'工作', color:'#2F6B4F', targetMin:600*60, ms:640*HOUR, n:560,
+          items:[{name:'写代码', color:'#2F6B4F', targetMin:480*60, ms:520*HOUR, n:430},
+                 {name:'开会',   color:'#3C6E9C', targetMin:120*60, ms:120*HOUR, n:130}]},
+         {name:'读书', color:'#9B4E6B', targetMin:120*60, ms:86*HOUR,  n:180,
+          items:[{name:'《三体》', color:'#9B4E6B', targetMin:60*60, ms:54*HOUR, n:110},
+                 {name:'专业书',     color:'#7A5DA8', targetMin:60*60, ms:32*HOUR, n:70}]},
+         {name:'休闲', color:'#4A5A63', targetMin:60*60,  ms:72*HOUR,  n:72,
+          items:[{name:'通勤', color:'#B4803A', targetMin:0, ms:72*HOUR, n:72}]}
+       ]}}
+  ],
+  records: [],
+  running: null,
+  statMode: 'day',
+  statAnchor: D0,
+  recordDate: D0,
+  planTab: 'current',
+  planPeriod: 'month',
+  planAnchor: D0,
+  lastBackupAt: null,
+  autoBackup: false,
+  backupDir: '',
+  statOpen: {},
+  planOpen: {},
+  planPick: 'tag',
+  itemFilterTag: 0,
+};
+
+function addRec(itemId, start, end, note, targetMin){
+  state.records.push({
+    id: recSeq++, itemId, start, end: end||null, note: note||'',
+    targetMin: targetMin||0,
+    remindAt: targetMin ? start + targetMin*60000 : null
+  });
+}
+
+// 今日
+addRec(4, D0 + 8*HOUR,        D0 + 8.75*HOUR, '地铁上听播客', 0);
+addRec(1, D0 + 9*HOUR,        D0 + 11.5*HOUR, '改支付回调的 bug，中途被会议打断 20 分钟', 45);
+addRec(2, D0 + 14*HOUR,       D0 + 15*HOUR, '周会：对齐下季度目标', 60);
+addRec(3, D0 + 21*HOUR,       D0 + 22*HOUR, '', 30);
+// 过去 40 天随机记录
+for (let back = 1; back <= 40; back++){
+  const day = D0 - back*DAY;
+  const n = 1 + (back % 3);
+  for (let k = 0; k < n; k++){
+    const itemId = 1 + ((back + k) % 4);
+    const hs = 8 + ((back*3 + k*5) % 12);
+    const dur = (30 + ((back*7 + k*13) % 120)) * MIN;
+    if (hs + dur/HOUR < 24) addRec(itemId, day + hs*HOUR, day + hs*HOUR + dur);
+  }
+}
+// 更早的记录，让「年」视图有数据
+for (let back = 47; back <= 300; back += 6){
+  const day = D0 - back*DAY;
+  addRec(1 + (back % 4), day + 9*HOUR, day + (9 + 2)*HOUR);
+}
+
+/* =========================================================
+   工具
+   ========================================================= */
+function pad(n){ return (n<10?'0':'')+n; }
+/** 备注是用户输入的自由文本，插进 innerHTML 前统一转义。 */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function clock(ms){
+  const t = Math.max(0, Math.floor(ms/1000));
+  return pad(Math.floor(t/3600)) + ':' + pad(Math.floor(t%3600/60)) + ':' + pad(t%60);
+}
+function human(ms){
+  const m = Math.floor(Math.max(0,ms)/MIN);
+  if (m < 1) return Math.floor(Math.max(0,ms)/1000) + '秒';
+  const h = Math.floor(m/60), mm = m%60;
+  if (h>0 && mm>0) return h+'小时'+mm+'分';
+  if (h>0) return h+'小时';
+  return mm+'分';
+}
+function hm(ts){ const d=new Date(ts); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+const WEEK = ['周日','周一','周二','周三','周四','周五','周六'];
+function dateLabel(ts){
+  const d = new Date(ts);
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日 '+WEEK[d.getDay()];
+}
+function shortDate(ts){ const d=new Date(ts); return (d.getMonth()+1)+'月'+d.getDate()+'日'; }
+function overlap(start, end, a, b){ return Math.max(0, Math.min(end,b) - Math.max(start,a)); }
+function itemById(id){ return state.items.find(i=>i.id===id); }
+function tagById(id){ return state.tags.find(t=>t.id===id); }
+function tagsOf(item){ return (item.tagIds||[]).map(tagById).filter(Boolean); }
+function tagChipHtml(tag){
+  if(!tag) return '';
+  return `<span class="tagchip" style="background:${tag.color}22;color:${tag.color}">${tag.name}</span>`;
+}
+function itemTagChips(item, max){
+  const ts = tagsOf(item);
+  const n = max || 3;
+  if (!ts.length) return '';
+  let html = ts.slice(0,n).map(tagChipHtml).join('');
+  if (ts.length > n) html += `<span class="tagchip" style="background:#6B728022;color:#6B7280">+${ts.length-n}</span>`;
+  return `<div class="row gap6" style="margin-top:3px;flex-wrap:wrap">${html}</div>`;
+}
+
+function toast(msg){
+  const el = document.getElementById('snackbar');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   统计口径：跨天记录按实际重叠时长拆到每一天
+   ========================================================= */
+function computeStats(mode, anchor){
+  let start, end, label;
+  const a = new Date(anchor);
+  if (mode === 'day'){
+    start = startOfDay(anchor); end = start + DAY; label = dateLabel(anchor);
+  } else if (mode === 'month'){
+    const s = new Date(a.getFullYear(), a.getMonth(), 1);
+    const e = new Date(a.getFullYear(), a.getMonth()+1, 1);
+    start = s.getTime(); end = e.getTime(); label = a.getFullYear()+'年'+(a.getMonth()+1)+'月';
+  } else {
+    const s = new Date(a.getFullYear(), 0, 1);
+    const e = new Date(a.getFullYear()+1, 0, 1);
+    start = s.getTime(); end = e.getTime(); label = a.getFullYear()+'年';
+  }
+
+  const totals = {}, counts = {}, buckets = [];
+  let sum = 0, count = 0;
+
+  state.records.forEach(r=>{
+    const e = r.end == null ? now0 : r.end;
+    const s0 = Math.max(r.start, start), e0 = Math.min(e, end);
+    if (e0 <= s0) return;
+    totals[r.itemId] = (totals[r.itemId]||0) + (e0 - s0);
+    counts[r.itemId] = (counts[r.itemId]||0) + 1;
+    sum += e0 - s0; count++;
+  });
+
+  let labels = [];
+  if (mode === 'month'){
+    const dim = new Date(a.getFullYear(), a.getMonth()+1, 0).getDate();
+    for (let i=0;i<dim;i++){ labels.push(String(i+1)); buckets.push(0); }
+  } else if (mode === 'year'){
+    for (let m=1;m<=12;m++){ labels.push(m+'月'); buckets.push(0); }
+  }
+  if (buckets.length){
+    state.records.forEach(r=>{
+      const e = r.end == null ? now0 : r.end;
+      let cur = Math.max(r.start, start);
+      const lim = Math.min(e, end);
+      while (cur < lim){
+        const d = new Date(cur);
+        const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1).getTime();
+        const segEnd = Math.min(lim, dayEnd);
+        if (segEnd <= cur) break;
+        const idx = mode === 'month' ? d.getDate()-1 : d.getMonth();
+        if (buckets[idx] !== undefined) buckets[idx] += segEnd - cur;
+        cur = segEnd;
+      }
+    });
+  }
+
+  const rows = Object.keys(totals).map(k=>{
+    const it = itemById(Number(k));
+    return it ? {item: it, ms: totals[k], n: counts[k]||0} : null;
+  }).filter(Boolean).sort((x,y)=>y.ms-x.ms);
+
+  // 标签汇总：把事项的用时/次数累加到它挂的每个标签（多标签会重复计入），并带出该标签下的事项
+  const tagMap = {};
+  state.tags.forEach(t=>{ tagMap[t.id] = {tag:t, ms:0, n:0, itemN:0, items:[]}; });
+  rows.forEach(r=>{
+    (r.item.tagIds||[]).forEach(id=>{
+      const t = tagMap[id];
+      if (!t) return;
+      t.ms += r.ms; t.n += r.n; t.itemN++;
+      t.items.push({item:r.item, ms:r.ms, n:r.n});
+    });
+  });
+  let tagRows = Object.values(tagMap).filter(t=>t.ms>0||t.n>0);
+
+  // 没挂标签的事项单独归到「未分类」
+  const loose = rows.filter(r=>!(r.item.tagIds||[]).length);
+  if (loose.length){
+    const u = {tag:{id:0, name:'未分类', color:'#8A8478'}, ms:0, n:0, itemN:0, items:[]};
+    loose.forEach(r=>{ u.ms+=r.ms; u.n+=r.n; u.itemN++; u.items.push({item:r.item, ms:r.ms, n:r.n}); });
+    tagRows.push(u);
+  }
+  tagRows.forEach(t=>t.items.sort((a,b)=>b.ms-a.ms));
+  tagRows.sort((a,b)=>b.ms-a.ms);
+
+  return {start, end, label, total: sum, count, rows, tagRows, labels, buckets};
+}
+
+/* =========================================================
+   计划：某周期内每个标签计划花多少时间
+   ========================================================= */
+function periodRange(type, anchor){
+  const a = new Date(anchor), ts = a.getTime();
+  if (type === 'month'){
+    const s = new Date(a.getFullYear(), a.getMonth(), 1);
+    const e = new Date(a.getFullYear(), a.getMonth()+1, 1);
+    return {start:s.getTime(), end:e.getTime(), key:monthKey(ts), label:a.getFullYear()+'年'+(a.getMonth()+1)+'月'};
+  }
+  if (type === 'five'){
+    const y0 = fiveStart(a.getFullYear());
+    const s = new Date(y0, 0, 1);
+    const e = new Date(y0+5, 0, 1);
+    return {start:s.getTime(), end:e.getTime(), key:y0+'-'+(y0+4), label:y0+'–'+(y0+4)+'年'};
+  }
+  const s = new Date(a.getFullYear(), 0, 1);
+  const e = new Date(a.getFullYear()+1, 0, 1);
+  return {start:s.getTime(), end:e.getTime(), key:yearKey(ts), label:a.getFullYear()+'年'};
+}
+
+function computePlan(type, anchor){
+  const {start, end, key, label} = periodRange(type, anchor);
+  const itemMs = {}, itemN = {};
+  state.records.forEach(r=>{
+    const e = r.end == null ? Date.now() : r.end;
+    const s0 = Math.max(r.start, start), e0 = Math.min(e, end);
+    if (e0 <= s0) return;
+    itemMs[r.itemId] = (itemMs[r.itemId]||0) + (e0 - s0);
+    itemN[r.itemId] = (itemN[r.itemId]||0) + 1;
+  });
+
+  // 计划目标分两级：标签级（总目标）/ 事项级（拆解到具体的事）
+  const tagTarget = {}, itemTarget = {};
+  state.plans.filter(p=>p.type===type && p.key===key).forEach(p=>{
+    if (p.kind === 'item') itemTarget[p.refId] = p.minutes;
+    else tagTarget[p.refId] = p.minutes;
+  });
+
+  const rows = state.tags.map(tag=>{
+    const its = state.items.filter(it=>it.tagIds && it.tagIds.includes(tag.id));
+    const itsRows = its.map(it=>({
+      item: it,
+      ms: itemMs[it.id]||0,
+      n: itemN[it.id]||0,
+      targetMin: itemTarget[it.id]||0
+    })).sort((a,b)=> (b.ms-a.ms) || (a.item.name > b.item.name ? 1 : -1));
+    return {
+      tag,
+      targetMin: tagTarget[tag.id] || 0,
+      ms: itsRows.reduce((a,x)=>a+x.ms,0),
+      n: itsRows.reduce((a,x)=>a+x.n,0),
+      itemN: its.length,
+      items: itsRows,
+      itemTargetSum: itsRows.reduce((a,x)=>a+x.targetMin,0)
+    };
+  }).filter(r=> r.targetMin>0 || r.ms>0 || r.itemTargetSum>0)
+    .sort((a,b)=> (b.targetMin-a.targetMin) || (b.ms-a.ms));
+
+  // 总目标 = 标签目标 + 没有父标签目标的那些事项目标（父标签有目标时，事项目标按拆解算，不重复计入）
+  const tagSum = rows.reduce((a,r)=>a+r.targetMin,0);
+  let orphanTarget = 0;
+  Object.keys(itemTarget).forEach(id=>{
+    const it = itemById(Number(id));
+    if (!it) return;
+    const covered = (it.tagIds||[]).some(tid => (tagTarget[tid]||0) > 0);
+    if (!covered) orphanTarget += itemTarget[id];
+  });
+
+  const totalTargetMin = tagSum + orphanTarget;
+  const totalUsed = Object.values(itemMs).reduce((a,b)=>a+b,0);
+  return {type, key, label, start, end, totalTargetMin, totalUsed, rows, tagSum, orphanTarget};
+}
+
+/* =========================================================
+   渲染
+   ========================================================= */
+function render(){
+  document.querySelectorAll('.navitem').forEach(n=>{
+    n.classList.toggle('active', n.dataset.tab === state.tab);
+  });
+  const c = document.getElementById('content');
+  if (state.tab === 'timer') c.innerHTML = viewTimer();
+  else if (state.tab === 'records') c.innerHTML = viewRecords();
+  else if (state.tab === 'stats') c.innerHTML = viewStats();
+  else if (state.tab === 'plan') c.innerHTML = viewPlan();
+  else c.innerHTML = viewItems();
+  const sb = document.getElementById('sb-time');
+  const d = new Date();
+  sb.textContent = pad(d.getHours())+':'+pad(d.getMinutes());
+}
+
+/* ---------- 计时页 ---------- */
+function todayStats(){
+  const s = startOfDay(Date.now()), e = s + DAY;
+  const now = Date.now();
+  let total = 0; const per = {};
+  state.records.forEach(r=>{
+    const en = r.end == null ? now : r.end;
+    const m = overlap(r.start, en, s, e);
+    if (m>0){ total += m; per[r.itemId] = (per[r.itemId]||0)+m; }
+  });
+  return {total, per};
+}
+
+function viewTimer(){
+  const t = todayStats();
+  const active = state.items.filter(i=>!i.archived);
+  const run = state.records.find(r=>r.end == null);
+  const runItem = run ? itemById(run.itemId) : null;
+
+  const runTgtMin = run ? (run.targetMin||0) : 0;
+  const runAt = run ? run.remindAt : null;
+  const runUsed = run ? Date.now() - run.start : 0;
+  const goalTotal = runAt ? (runAt - run.start) : 0;
+  const over = runAt ? runUsed >= goalTotal : false;
+  const pct = goalTotal > 0 ? Math.min(100, runUsed/goalTotal*100) : 0;
+
+  const runningCard = run && runItem ? `
+    <div class="running-card ${over?'over':''}">
+      <div class="row gap8">
+        <span class="dot" style="background:${runItem.color}"></span>
+        <span class="title-sm">${runItem.name}</span>
+        ${tagsOf(runItem).slice(0,2).map(tagChipHtml).join('')}
+        <span class="grow"></span>
+        <span class="small">开始于 ${hm(run.start)}</span>
+      </div>
+      <div class="clock" id="clock">${clock(runUsed)}</div>
+      ${runAt ? `
+        <div class="track" style="background:rgba(255,255,255,.6)">
+          <i id="goal-bar" style="width:${pct}%;background:${over?'#C08A2E':'var(--primary)'}"></i>
+        </div>
+        <div class="row" style="justify-content:space-between;margin-top:8px;gap:8px">
+          <span class="small ellipsis">${runTgtMin>0 ? '目标 '+runTgtMin+' 分 · ' : ''}${hm(runAt)} 提醒</span>
+          <span class="small" id="remain" style="font-weight:700;white-space:nowrap;color:${over?'#A3601A':'#245238'}">
+            ${over ? '已超出 '+clock(runUsed-goalTotal).slice(3) : '还剩 '+clock(goalTotal-runUsed).slice(3)}
+          </span>
+        </div>
+      ` : `
+        <div class="row" style="justify-content:space-between;margin-top:8px">
+          <span class="small">未设提醒</span>
+          <span class="small" style="color:var(--primary);font-weight:600" onclick="openTargetDialog()">设提醒</span>
+        </div>
+      `}
+      <div class="run-note" onclick="openNoteSheet(${run.id})">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" style="flex:0 0 auto;margin-top:1px;opacity:.7"><path d="M4 20h4L20 8l-4-4L4 16v4z"/></svg>
+        <span class="tx">${run.note ? esc(run.note) : '这一段时间在做什么，记一句'}</span>
+        <span style="font-size:12px;font-weight:600;color:var(--primary);flex:0 0 auto">${run.note?'改':'写'}</span>
+      </div>
+      <div class="row gap8" style="margin-top:14px">
+        <button class="btn" onclick="stopTimer()">结束计时</button>
+        <button class="btn-mid" onclick="openTargetDialog()">${runAt?'改提醒':'设提醒'}</button>
+      </div>
+      ${runAt ? `<div class="demo-link" onclick="demoGoal()">演示到点提醒（不用真的等到）</div>` : ''}
+    </div>` : `
+    <div class="running-card idle">
+      <div class="title-sm" style="color:#3B372F">当前没有进行中的计时</div>
+      <div class="small" style="margin-top:6px">点下面任一事项即可开始，结束后自动落账</div>
+    </div>`;
+
+  return `
+    <div class="pad" style="padding-top:10px">
+      <div class="small">${dateLabel(Date.now())}</div>
+      <div class="row" style="align-items:flex-end;gap:8px;margin-top:2px">
+        <div class="today-total">${human(t.total)}</div>
+        <div class="small" style="padding-bottom:6px">今日已记录</div>
+      </div>
+    </div>
+    <div class="pad h20"></div>
+    <div class="pad">${runningCard}</div>
+    <div class="pad h20"></div>
+    <div class="pad row" style="justify-content:space-between">
+      <span class="title-sm">选择事项开始计时</span>
+      <span class="small">${active.length} 项</span>
+    </div>
+    <div class="pad h8"></div>
+    <div class="pad" style="display:flex;flex-direction:column;gap:8px;padding-bottom:110px">
+      ${active.map(it=>{
+        const ms = t.per[it.id]||0;
+        const isRun = run && run.itemId === it.id;
+        return `<div class="item-card ${isRun?'running':''}" onclick="startItem(${it.id})">
+          <span class="dot" style="background:${it.color}"></span>
+          <div class="grow">
+            <div style="font-size:15px;font-weight:500">${it.name}</div>
+            ${itemTagChips(it, 2)}
+            ${(ms>0||it.note)?`<div class="small" style="margin-top:2px">${ms>0?'今日 '+human(ms):''}${(ms>0&&it.note)?' · ':''}${it.note||''}</div>`:''}
+          </div>
+          ${isRun?`<span style="font-size:12px;color:var(--primary);font-weight:600">计时中</span>`
+                 :`<svg class="play-ic" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>`}
+        </div>`;
+      }).join('') || `<div class="hint">还没有事项。<br>去「事项」页新建一个，比如「写代码」「读书」。</div>`}
+    </div>
+    <div class="fab" onclick="openRecordDialog(null)">
+      <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      补录
+    </div>`;
+}
+
+/* ---------- 记录页 ---------- */
+function viewRecords(){
+  const s = state.recordDate, e = s + DAY, now = Date.now();
+  const list = state.records
+    .filter(r => r.start < e && (r.end==null ? now : r.end) > s)
+    .sort((a,b)=>a.start-b.start);
+  const total = list.reduce((acc,r)=>acc + overlap(r.start, r.end==null?now:r.end, s, e), 0);
+
+  return `
+    <div class="period" style="margin-top:6px">
+      <div class="chev" onclick="shiftRecordDate(-1)">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+      </div>
+      <div class="grow" style="text-align:center">
+        <div class="title-md">${dateLabel(s)}</div>
+        <div class="small">共 ${list.length} 段 · ${human(total)}</div>
+      </div>
+      <div class="chev" onclick="shiftRecordDate(1)">
+        <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+      </div>
+    </div>
+    <div class="pad h14"></div>
+    <div class="pad" style="display:flex;flex-direction:column;gap:8px;padding-bottom:110px">
+      ${list.map(r=>{
+        const it = itemById(r.itemId);
+        const running = r.end == null;
+        const dur = (r.end==null?now:r.end) - r.start;
+        return `<div class="recrow" onclick="openRecordDialog(${r.id})">
+          <span class="dot" style="background:${it?it.color:'#9E9E9E'}"></span>
+          <div class="grow">
+            <div class="row gap6">
+              <span style="font-size:15px;font-weight:500">${it?it.name:'已删除事项'}</span>
+              ${running?'<span style="font-size:11px;color:var(--primary);font-weight:600">计时中</span>':''}
+              ${it?tagsOf(it).slice(0,2).map(tagChipHtml).join(''):''}
+            </div>
+            <div class="small ellipsis" style="margin-top:1px">
+              ${hm(r.start)} - ${r.end==null?'现在':hm(r.end)}${r.remindAt ? (' · ' + (r.targetMin>0 ? '目标'+r.targetMin+'分' : hm(r.remindAt)+' 提醒') + (((r.end==null?now:r.end) >= r.remindAt)?' ✓':' 未达')) : ''}
+            </div>
+            ${r.note
+              ? `<div class="recnote" onclick="event.stopPropagation();openNoteSheet(${r.id})">${esc(r.note)}</div>`
+              : `<div class="recnote add" onclick="event.stopPropagation();openNoteSheet(${r.id}, true)">＋ 加一句备注</div>`}
+          </div>
+          <div style="font-size:13px;font-weight:500;white-space:nowrap">${human(dur)}</div>
+          <div class="del-ic" onclick="event.stopPropagation();askDeleteRecord(${r.id})">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+          </div>
+        </div>`;
+      }).join('') || `<div class="hint">这一天还没有记录。<br>可以点右下角补录，或回「计时」页开始。</div>`}
+    </div>
+    <div class="fab" onclick="openRecordDialog(null)">
+      <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      补录
+    </div>`;
+}
+
+/* ---------- 标签分组：折叠箭头 + 展开后的事项明细 ---------- */
+function chev(open){
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"
+    style="flex:0 0 auto;color:#9A9488;transition:transform .18s;transform:rotate(${open?'180deg':'0deg'})"><path d="M6 9l6 6 6-6"/></svg>`;
+}
+function subRows(list, baseMs, opts){
+  const arr = list || [];
+  const o = opts || {};
+  if (!arr.length) return `<div class="small" style="padding:10px 2px 2px;color:#8A8478">这个标签下没有可显示的事项</div>`;
+  return arr.map(x=>{
+    const p = baseMs>0 ? x.ms/baseMs : 0;
+    const tm = (x.targetMin||0)*60000;
+    const hasT = tm>0;
+    const tp = hasT ? Math.round(x.ms/tm*100) : 0;
+    const hit = hasT && x.ms >= tm;
+    return `<div class="sub-item${(o.onEdit && !x.item.archived)?' plan-row':''}" style="border-top:1px dashed var(--outline);padding:8px 0 6px"
+      ${o.onEdit && !x.item.archived ? `onclick="event.stopPropagation();${o.onEdit(x)}"`:''}>
+      <div class="row gap8">
+        <span class="dot" style="background:${x.item.color};width:8px;height:8px"></span>
+        <span class="grow" style="font-size:13.5px">${x.item.name}${x.item.archived?'<span class="small" style="color:#A8A296"> · 已归档</span>':''}</span>
+        <span class="small">${x.n} 次</span>
+        <span class="small" style="font-weight:600;color:var(--on-surface)">${human(x.ms)}</span>
+        ${hasT ? `<span class="small" style="font-weight:700;margin-left:4px;color:${hit?'#2F6B4F':'#A3601A'}">${tp}%</span>` : ''}
+        ${(o.onEdit && !x.item.archived) ? `<span class="del-ic" style="margin-left:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20h4L20 8l-4-4L4 16v4z"/></svg>
+        </span>` : ''}
+      </div>
+      ${hasT ? `<div class="small" style="margin-top:3px;color:#8A8478">目标 ${human(tm)}${x.ms<tm?` · 还差 ${human(tm-x.ms)}`:` · 已超 ${human(x.ms-tm)}`}</div>` : ''}
+      <div class="track" style="height:3px;margin-top:5px"><i style="width:${(p*100).toFixed(1)}%;background:${x.item.color}"></i></div>
+    </div>`;
+  }).join('');
+}
+function toggleStatTag(id){ state.statOpen[id] = !state.statOpen[id]; render(); }
+function togglePlanTag(id){ state.planOpen[id] = !state.planOpen[id]; render(); }
+function setAllOpen(which, open, idsCsv){
+  const m = which==='stat' ? state.statOpen : state.planOpen;
+  String(idsCsv||'').split(',').filter(s=>s!=='').forEach(k=>{ m[k] = open; });
+  render();
+}
+
+/* ---------- 统计页 ---------- */
+function viewStats(){
+  const st = computeStats(state.statMode, state.statAnchor);
+  const maxB = Math.max(1, ...st.buckets);
+  const plan = state.statMode === 'day' ? null : computePlan(state.statMode, state.statAnchor);
+  const planPct = plan && plan.totalTargetMin>0
+    ? Math.min(999, Math.round(plan.totalUsed / (plan.totalTargetMin*60000) * 100)) : 0;
+
+  const sub = state.statMode === 'day'
+    ? `占全天 ${(st.total/DAY*100).toFixed(1)}%`
+    : state.statMode === 'month'
+      ? `日均 ${human(Math.round(st.total/30))}`
+      : `月均 ${human(Math.round(st.total/12))}`;
+
+  const statIds = st.tagRows.map(t=>t.tag.id).join(',');
+  const statAllOpen = st.tagRows.length>0 && st.tagRows.every(t=>state.statOpen[t.tag.id]);
+
+  // 月/年视图顺带显示事项级计划进度（日视图没有计划）
+  const itemTargets = {};
+  if (plan) plan.rows.forEach(r=>r.items.forEach(x=>{ if (x.targetMin>0) itemTargets[x.item.id] = x.targetMin; }));
+
+  const chart = st.buckets.length && st.total > 0 ? `
+    <div class="card" style="margin-top:12px;padding:16px">
+      <div class="row" style="justify-content:space-between">
+        <span class="title-sm">${state.statMode==='month'?'每日用时':'每月用时'}</span>
+        <span class="small">峰值 ${human(Math.max(...st.buckets))}</span>
+      </div>
+      <div class="chart">
+        ${st.buckets.map(v=>`<div class="col"><div class="bar"><span style="height:${(v/maxB*100).toFixed(1)}%"></span></div></div>`).join('')}
+      </div>
+      <div class="chart-labels">
+        ${st.labels.map((l,i)=>`<div>${(st.labels.length>12 && i%5!==0 && i!==st.labels.length-1)?'':l}</div>`).join('')}
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="tabs">
+      ${[['day','日'],['month','月'],['year','年']].map(([k,label])=>
+        `<div class="tab ${state.statMode===k?'active':''}" onclick="setStatMode('${k}')">${label}</div>`).join('')}
+    </div>
+    <div class="period" style="padding:4px 8px">
+      <div class="chev" onclick="shiftStat(-1)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div>
+      <div class="grow" style="text-align:center">
+        <div class="title-md">${st.label}</div>
+        <div class="small">${st.count} 条记录</div>
+      </div>
+      <div class="chev" onclick="shiftStat(1)"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+    </div>
+    <div class="pad">
+      <div class="total-card">
+        <div class="small" style="color:#3A5A46">总用时</div>
+        <div class="row" style="align-items:flex-end;gap:10px;margin-top:2px">
+          <div style="font-size:30px;font-weight:600">${human(st.total)}</div>
+          <div class="small" style="color:#3A5A46;padding-bottom:5px">共 ${st.count} 次记录</div>
+        </div>
+        <div class="small" style="color:#3A5A46;margin-top:2px">${sub}</div>
+        ${plan && plan.totalTargetMin>0 ? `
+          <div style="margin-top:12px;border-top:1px solid rgba(14,44,28,.12);padding-top:10px">
+            <div class="row" style="justify-content:space-between">
+              <span class="small" style="color:#3A5A46">${state.statMode==='month'?'本月':'本年'}计划 ${human(plan.totalTargetMin*60000)}</span>
+              <span class="small" style="color:#3A5A46;font-weight:700">已完成 ${planPct}%</span>
+            </div>
+            <div class="track" style="background:rgba(255,255,255,.65)">
+              <i style="width:${Math.min(100,planPct)}%;background:var(--primary)"></i>
+            </div>
+          </div>` : ''}
+      </div>
+      ${chart}
+      ${st.tagRows.length?`
+        <div class="row" style="justify-content:space-between;margin:16px 0 8px">
+          <span class="title-sm">按标签 · <span class="small" style="font-weight:400">展开看事项</span></span>
+          <span class="small" style="color:var(--primary);font-weight:600;cursor:pointer"
+                onclick="setAllOpen('stat',${!statAllOpen},'${statIds}')">${statAllOpen?'收起全部':'展开全部'}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:110px">
+          ${st.tagRows.map(t=>{
+            const pct = st.total>0 ? t.ms/st.total : 0;
+            const open = !!state.statOpen[t.tag.id];
+            return `<div class="card" style="padding:12px 16px">
+              <div class="row gap8 plan-row" onclick="toggleStatTag(${t.tag.id})">
+                <span class="dot" style="background:${t.tag.color}"></span>
+                <span class="grow" style="font-size:15px;font-weight:500">${t.tag.name}</span>
+                <span class="small">${t.n} 次 · ${t.itemN} 项</span>
+                <span style="font-size:13px;font-weight:600;margin-left:6px">${human(t.ms)}</span>
+                <span class="small" style="margin-left:4px;min-width:30px;text-align:right">${Math.round(pct*100)}%</span>
+                ${chev(open)}
+              </div>
+              <div class="track" style="margin-top:8px"><i style="width:${(pct*100).toFixed(1)}%;background:${t.tag.color}"></i></div>
+              ${open ? `<div style="margin-top:2px">${subRows(t.items.map(x=>({...x, targetMin: itemTargets[x.item.id]||0})), t.ms)}</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+        ${(st.tagRows.length>1 && st.tagRows.reduce((a,t)=>a+t.ms,0) > st.total) ? `
+          <div class="small" style="margin-top:8px;line-height:1.6">提示：一个事项挂了多个标签时，同一段时间会在每个标签下各算一次，所以标签之和可能大于总用时。</div>`:''}
+      ` : `<div class="hint" style="padding-bottom:110px">这段时间还没有记录。<br>先去计时或补录一条吧。</div>`}
+    </div>`;
+}
+
+/* ---------- 计划页 ---------- */
+function unitName(type){ return type==='month' ? '月度计划' : type==='year' ? '年度计划' : '五年计划'; }
+function dateOnly(ts){ const d=new Date(ts); return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日'; }
+function anchorOf(doc){
+  if (doc.type === 'month'){ const p = String(doc.key).split('-'); return new Date(Number(p[0]), Number(p[1])-1, 1).getTime(); }
+  if (doc.type === 'year')  return new Date(Number(doc.key), 0, 1).getTime();
+  return new Date(Number(String(doc.key).split('-')[0]), 0, 1).getTime();
+}
+function snapshotOf(p){
+  return {
+    label: p.label,
+    totalTargetMin: p.totalTargetMin,
+    totalUsed: p.totalUsed,
+    count: p.rows.reduce((a,r)=>a+r.n,0),
+    rows: p.rows.map(r=>({
+      name: r.tag.name,
+      color: r.tag.color,
+      targetMin: r.targetMin,
+      ms: r.ms,
+      n: r.n,
+      itemTargetSum: r.itemTargetSum || 0,
+      items: (r.items||[]).filter(x=>x.ms>0 || x.targetMin>0).map(x=>({
+        name: x.item.name, color: x.item.color, targetMin: x.targetMin, ms: x.ms, n: x.n
+      }))
+    }))
+  };
+}
+function planDoc(type, key){ return state.planDocs.find(d=>d.type===type && d.key===key) || null; }
+function ensurePlanDoc(type, key){
+  let d = planDoc(type, key);
+  if (!d){ d = {type, key, status:'active', summary:'', closedAt:null, snapshot:null}; state.planDocs.push(d); }
+  return d;
+}
+function isClosed(type, key){ const d = planDoc(type, key); return !!(d && d.status==='closed'); }
+function docStats(d){ return d.snapshot || snapshotOf(computePlan(d.type, anchorOf(d))); }
+function pctOf(s){
+  const t = s.totalTargetMin*60000;
+  return t>0 ? Math.round(s.totalUsed/t*100) : 0;
+}
+// 已到期但还没写总结的期
+function dueDocs(){
+  const seen = {}, out = [];
+  state.plans.forEach(pl=>{
+    const k = pl.type+'|'+pl.key;
+    if (seen[k]) return;
+    seen[k] = 1;
+    if (isClosed(pl.type, pl.key)) return;
+    const r = periodRange(pl.type, anchorOf(pl));
+    if (r.end <= Date.now()) out.push({type:pl.type, key:pl.key, label:r.label, end:r.end});
+  });
+  return out.sort((a,b)=>b.end-a.end);
+}
+
+function viewPlan(){
+  const dueN = dueDocs().length;
+  const curClosed = state.planTab==='current'
+    && isClosed(state.planPeriod, periodRange(state.planPeriod, state.planAnchor).key);
+  const tabs = `<div class="seg">
+      <div class="${state.planTab==='current'?'on':''}" onclick="setPlanTab('current')">本期计划</div>
+      <div class="${state.planTab==='history'?'on':''}" onclick="setPlanTab('history')">历史计划${dueN?'<span class="due-dot"></span>':''}</div>
+    </div>`;
+
+  return `
+    <div class="pad" style="padding-top:12px">
+      <div class="row" style="align-items:flex-start;gap:8px">
+        <div class="grow">
+          <div style="font-size:24px;font-weight:600">计划</div>
+          <div class="small" style="margin-top:2px">月度 / 年度 / 五年，给标签或具体事项定时长目标；到期写总结后归档</div>
+        </div>
+        ${(state.planTab==='current' && !curClosed) ? `<div class="add-cb" style="margin-top:4px" onclick="openPlanPicker()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>新增计划
+        </div>` : ''}
+        <div class="del-ic" style="margin-top:4px;width:32px" onclick="openBackupSheet()" title="备份与恢复">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="pad h14"></div>
+    <div class="pad">${tabs}</div>
+    ${state.planTab==='history' ? viewPlanHistory() : viewPlanCurrent()}`;
+}
+
+/* ---- 本期计划 ---- */
+function viewPlanCurrent(){
+  const type = state.planPeriod;
+  const {end, key, label} = periodRange(type, state.planAnchor);
+  const doc = planDoc(type, key);
+  const closed = !!(doc && doc.status === 'closed');
+  const ended = end <= Date.now();
+  const p = computePlan(type, state.planAnchor);
+  const targetMs = p.totalTargetMin*60000;
+  const pct = targetMs>0 ? Math.round(p.totalUsed/targetMs*100) : 0;
+  const rows = (p.rows.length ? p.rows : state.tags.map(t=>({tag:t, targetMin:0, ms:0, n:0, itemN:0, items:[]})));
+  const planIds = rows.map(r=>r.tag.id).join(',');
+  const planAllOpen = rows.length>0 && rows.every(r=>state.planOpen[r.tag.id]);
+
+  const notice = closed ? `
+    <div class="card" style="margin-top:10px;background:var(--primary-container);box-shadow:none">
+      <div class="row gap8">
+        <span class="tagchip" style="background:#2F6B4F22;color:#2F6B4F">已归档</span>
+        <span class="small grow">本期已于 ${dateOnly(doc.closedAt)} 归档</span>
+        <span class="small" style="color:var(--primary);font-weight:600;cursor:pointer" onclick="openArchiveDetail('${type}','${key}')">看总结</span>
+      </div>
+    </div>` : ended ? `
+    <div class="card" style="margin-top:10px;background:#FBF0D9;box-shadow:none">
+      <div class="row gap8">
+        <span class="badge-due">已到期</span>
+        <span class="small grow" style="color:#7A5410">本期已于 ${dateOnly(end)} 结束，写几句总结就可以归档</span>
+      </div>
+      <button class="btn" style="margin-top:10px;height:42px;background:#B4803A" onclick="openClosePlanDialog()">写总结并归档</button>
+    </div>` : '';
+
+  return `
+    <div class="hrow" style="margin-top:12px">
+      ${[['month','月度计划'],['year','年度计划'],['five','五年计划']].map(([k,lb])=>
+        `<div class="filterchip ${type===k?'sel':''}"
+              style="${type===k?'background:var(--primary-container);color:#173B28':''}"
+              onclick="setPlanPeriod('${k}')">${lb}</div>`).join('')}
+    </div>
+    <div class="period" style="padding:6px 8px">
+      <div class="chev" onclick="shiftPlan(-1)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div>
+      <div class="grow" style="text-align:center">
+        <div class="title-md">${label}</div>
+        ${ended ? `<div class="small" style="color:#A3601A">${closed?'已归档':'已结束'}</div>`
+                : `<div class="small">${dateOnly(end)} 结束</div>`}
+      </div>
+      <div class="chev" onclick="shiftPlan(1)"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+    </div>
+    <div class="pad">
+      <div class="total-card">
+        <div class="row" style="justify-content:space-between">
+          <span class="small" style="color:#3A5A46">本期计划完成度</span>
+          ${closed ? `<span class="small" style="color:#3A5A46">已归档</span>`
+                   : `<span class="small" style="color:#3A5A46;font-weight:600;text-decoration:underline" onclick="copyPrevPlan()">沿用上期</span>`}
+        </div>
+        ${targetMs>0 ? `
+          <div class="row" style="align-items:flex-end;gap:10px;margin-top:4px">
+            <div style="font-size:30px;font-weight:600">${pct}%</div>
+            <div class="small" style="color:#3A5A46;padding-bottom:5px">已用 ${human(p.totalUsed)} / 计划 ${human(targetMs)}</div>
+          </div>
+          <div class="track" style="background:rgba(255,255,255,.65)">
+            <i style="width:${Math.min(100,pct)}%;background:var(--primary)"></i>
+          </div>` : `
+          <div class="title-sm" style="margin-top:6px">还没定计划</div>
+          <div class="small" style="margin-top:4px;color:#3A5A46">点右上角「＋ 新增计划」，选一个标签或具体事项，设定「${label}」要花多少小时。</div>`}
+      </div>
+      ${notice}
+
+      <div class="row" style="justify-content:space-between;margin:16px 0 8px">
+        <span class="title-sm">各标签目标 · <span class="small" style="font-weight:400">展开看事项</span></span>
+        <span class="small" style="color:var(--primary);font-weight:600;cursor:pointer"
+              onclick="setAllOpen('plan',${!planAllOpen},'${planIds}')">${planAllOpen?'收起全部':'展开全部'}</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:110px">
+        ${rows.map(r=>{
+          const tm = r.targetMin*60000;
+          const itemSum = (r.itemTargetSum||0)*60000;
+          const pct2 = tm>0 ? Math.min(999, Math.round(r.ms/tm*100)) : 0;
+          const barPct = tm>0 ? Math.min(100, r.ms/tm*100) : 0;
+          const over = tm>0 && r.ms>tm;
+          const open = !!state.planOpen[r.tag.id];
+          const visible = (r.items||[]).filter(x=> !x.item.archived || x.ms>0);
+          return `<div class="card" style="padding:12px 16px">
+            <div class="row gap8 plan-row" onclick="togglePlanTag(${r.tag.id})">
+              <span class="dot" style="background:${r.tag.color}"></span>
+              <span class="grow" style="font-size:15px;font-weight:500">${r.tag.name}</span>
+              <span class="tagchip" style="background:${r.tag.color}1f;color:${r.tag.color}">${r.itemN} 项 · ${r.n} 次</span>
+              ${tm>0 ? `<span style="font-size:13px;font-weight:700;color:${over?'#A3601A':r.tag.color}">${pct2}%</span>`
+                     : (r.itemTargetSum>0 ? `<span class="small" style="color:#8A8478">按事项</span>`
+                                          : `<span class="small">未设目标</span>`)}
+              ${closed ? '' : `<span class="del-ic" onclick="event.stopPropagation();openPlanDialog('tag',${r.tag.id})">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20h4L20 8l-4-4L4 16v4z"/></svg>
+              </span>`}
+              ${chev(open)}
+            </div>
+            <div class="small" style="margin-top:6px">
+              ${tm>0
+                ? `已用 ${human(r.ms)} / 计划 ${human(tm)}` + (over? ` · 已超 ${human(r.ms-tm)}` : ` · 还剩 ${human(tm-r.ms)}`)
+                : `已用 ${human(r.ms)}` + (r.itemTargetSum>0 ? ` · 未设标签目标，事项拆解 ${human(itemSum)}` : ` · 未设目标`)}
+            </div>
+            ${tm>0?`<div class="track" style="margin-top:7px"><i style="width:${barPct}%;background:${r.tag.color}"></i></div>`:''}
+            ${open ? `<div style="margin-top:2px">
+              ${subRows(visible, r.ms, closed?null:{onEdit:x=>`openPlanDialog('item',${x.item.id})`})}
+              ${(tm>0 && r.itemTargetSum>0) ? `<div class="small" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--outline);line-height:1.6">
+                 事项拆解合计 ${human(itemSum)} / 标签目标 ${human(tm)}${itemSum!==tm?'（两者不必相等）':''}
+              </div>`:''}
+              ${(tm===0 && r.itemTargetSum>0) ? `<div class="small" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--outline);line-height:1.6">
+                 只给事项定了目标，合计 ${human(itemSum)}，会算进本期总目标
+              </div>`:''}
+            </div>` : ''}
+          </div>`;
+        }).join('') || `<div class="hint">${state.tags.length
+            ? `本期还没有计划目标。<br>点右上角「＋ 新增计划」，给标签或具体事项定时长。`
+            : `还没有标签。<br>先去「事项」页建一个标签，比如「读书」，再回来定计划。`}</div>`}
+        ${closed ? '' : `<div class="add-line" onclick="openPlanPicker()">＋ 新增计划目标（标签 / 具体事项）</div>`}
+        ${(!closed && !ended && p.totalTargetMin>0) ? `
+          <button class="btn btn-ghost" onclick="openClosePlanDialog()">提前结束本期并归档</button>` : ''}
+        <div class="small" style="margin-top:14px;line-height:1.75;color:#8A8478">
+          标签和事项可以各设目标：两者并存时，事项目标算作该标签的拆解，不会重复计入本期总目标；只给事项设了目标、所属标签没设时，事项目标会计入总目标。
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---- 历史计划 ---- */
+function viewPlanHistory(){
+  const due = dueDocs();
+  const closed = state.planDocs.filter(d=>d.status==='closed').sort((a,b)=>(b.closedAt||0)-(a.closedAt||0));
+
+  return `
+    <div class="pad" style="padding-bottom:110px">
+      ${due.length ? `
+        <div class="row" style="justify-content:space-between;margin:14px 0 8px">
+          <span class="title-sm">待总结</span><span class="small">${due.length} 期</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${due.map(d=>{
+            const s = snapshotOf(computePlan(d.type, anchorOf(d)));
+            return `<div class="card" style="background:#FBF0D9;box-shadow:none">
+              <div class="row gap8">
+                <span class="badge-due">待总结</span>
+                <span style="font-size:15px;font-weight:500">${d.label}</span>
+                <span class="grow"></span>
+                <span class="tagchip" style="background:#B4803A22;color:#8A5A12">${unitName(d.type)}</span>
+              </div>
+              <div class="small" style="margin-top:5px;color:#7A5410">
+                ${dateOnly(d.end)} 结束 · 计划 ${human(s.totalTargetMin*60000)} / 实际 ${human(s.totalUsed)} · 完成 ${pctOf(s)}%
+              </div>
+              <div class="track" style="background:#E9DEC4"><i style="width:${Math.min(100,pctOf(s))}%;background:#B4803A"></i></div>
+              <div class="row gap8" style="margin-top:10px">
+                <button class="btn" style="height:38px;font-size:13px;background:#B4803A" onclick="writeSummaryFor('${d.type}','${d.key}')">写总结并归档</button>
+                <button class="btn btn-ghost" style="height:38px;font-size:13px" onclick="gotoPlanPeriod('${d.type}','${d.key}')">看明细</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>` : ''}
+
+      <div class="row" style="justify-content:space-between;margin:16px 0 8px">
+        <span class="title-sm">已归档</span><span class="small">${closed.length} 期</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${closed.map(d=>{
+          const s = docStats(d), pc = pctOf(s), over = pc>=100;
+          const tip = d.summary ? d.summary : '';
+          return `<div class="card plan-row" onclick="openArchiveDetail('${d.type}','${d.key}')">
+            <div class="row gap8">
+              <span class="tagchip" style="background:${over?'#2F6B4F22':'#6B655B22'};color:${over?'#2F6B4F':'#6B655B'}">${unitName(d.type)}</span>
+              <span class="grow" style="font-size:15px;font-weight:500">${s.label}</span>
+              <span style="font-size:13px;font-weight:600;color:${over?'var(--primary)':'#A3601A'}">${pc}%</span>
+            </div>
+            <div class="small" style="margin-top:5px">
+              计划 ${human(s.totalTargetMin*60000)} / 实际 ${human(s.totalUsed)} · ${s.count} 次 · 归档于 ${dateOnly(d.closedAt)}
+            </div>
+            <div class="track"><i style="width:${Math.min(100,pc)}%;background:var(--primary)"></i></div>
+            ${tip ? `<div class="small" style="margin-top:8px;line-height:1.6">「${tip.length>46?tip.slice(0,46)+'…':tip}」</div>`
+                  : `<div class="small" style="margin-top:8px;color:#A3601A">没有写总结</div>`}
+          </div>`;
+        }).join('') || `<div class="hint">还没有归档的计划。<br>本期结束后点「写总结并归档」，就会出现在这里。</div>`}
+      </div>
+    </div>`;
+}
+
+function setPlanTab(k){ state.planTab = k; render(); }
+function gotoPlanPeriod(type, key){
+  state.planPeriod = type;
+  state.planAnchor = anchorOf({type, key});
+  state.planTab = 'current';
+  render();
+}
+
+function setPlanPeriod(k){ state.planPeriod = k; render(); }
+function shiftPlan(d){
+  const a = new Date(state.planAnchor);
+  if (state.planPeriod === 'month'){
+    state.planAnchor = new Date(a.getFullYear(), a.getMonth()+d, 1).getTime();
+  } else if (state.planPeriod === 'year'){
+    state.planAnchor = new Date(a.getFullYear()+d, 0, 1).getTime();
+  } else {
+    state.planAnchor = new Date(fiveStart(a.getFullYear()) + 5*d, 0, 1).getTime();
+  }
+  render();
+}
+function copyPrevPlan(){
+  const type = state.planPeriod;
+  if (isClosed(type, periodRange(type, state.planAnchor).key)){ toast('本期已归档，不能再改计划'); return; }
+  const a = new Date(state.planAnchor);
+  const prev = type==='month' ? new Date(a.getFullYear(), a.getMonth()-1, 1).getTime()
+             : type==='year'  ? new Date(a.getFullYear()-1, 0, 1).getTime()
+             : new Date(fiveStart(a.getFullYear())-5, 0, 1).getTime();
+  const prevKey = periodRange(type, prev).key;
+  const key = periodRange(type, state.planAnchor).key;
+  const src = state.plans.filter(p=>p.type===type && p.key===prevKey);
+  if (!src.length){ toast('上一期没有设置过计划'); return; }
+  src.forEach(p=>{
+    const exist = state.plans.find(x=>x.type===p.type && x.key===key && x.kind===p.kind && x.refId===p.refId);
+    if (exist) exist.minutes = p.minutes;
+    else state.plans.push({type:p.type, key, kind:p.kind, refId:p.refId, minutes:p.minutes});
+  });
+  ensurePlanDoc(type, key);
+  const nTag = src.filter(p=>p.kind!=='item').length, nItem = src.length - nTag;
+  toast('已沿用上一期：'+nTag+' 个标签'+(nItem?` / ${nItem} 个事项`:''));
+  render();
+}
+/* ---- 新增计划：先选对象（标签 / 具体事项）再填时长 ---- */
+function planPickerData(){
+  const p = computePlan(state.planPeriod, state.planAnchor);
+  const tagInfo = {}, itemInfo = {};
+  p.rows.forEach(r=>{
+    tagInfo[r.tag.id] = {ms:r.ms, n:r.n, targetMin:r.targetMin, itemN:r.itemN};
+    (r.items||[]).forEach(x=>{ itemInfo[x.item.id] = {ms:x.ms, n:x.n, targetMin:x.targetMin}; });
+  });
+  return {tagInfo, itemInfo};
+}
+function openPlanPicker(kind){
+  const type = state.planPeriod;
+  const {key, label} = periodRange(type, state.planAnchor);
+  if (isClosed(type, key)){ toast('本期已归档，计划目标不能再改'); return; }
+  if (kind) state.planPick = kind;
+  const k = state.planPick === 'item' ? 'item' : 'tag';
+  const {tagInfo, itemInfo} = planPickerData();
+  const used = ms => ms>0 ? human(ms) : '还没记录';
+  let list = '';
+  if (k === 'tag'){
+    list = state.tags.map(t=>{
+      const i = tagInfo[t.id] || {ms:0, n:0, targetMin:0,
+        itemN: state.items.filter(it=>(it.tagIds||[]).includes(t.id) && !it.archived).length};
+      return `<div class="pk-row" onclick="openPlanDialog('tag',${t.id})">
+        <span class="dot" style="background:${t.color}"></span>
+        <span class="grow" style="min-width:0">
+          <div class="row" style="gap:6px;align-items:baseline">
+            <span class="pk-name grow" style="min-width:0">${t.name}</span>
+            <span class="pk-val" style="color:${i.targetMin>0?t.color:'#A8A29A'}">${i.targetMin>0?'目标 '+human(i.targetMin*60000):'未设目标'}</span>
+          </div>
+          <div class="pk-sub">${i.itemN} 个事项 · ${i.n} 次 · 已用 ${used(i.ms)}</div>
+        </span>
+        <span class="pk-go">›</span>
+      </div>`;
+    }).join('');
+  } else {
+    list = state.items.filter(it=>!it.archived).map(it=>{
+      const i = itemInfo[it.id] || {ms:0, n:0, targetMin:0};
+      const tagNames = (it.tagIds||[]).map(id=>tagById(id)).filter(Boolean).map(t=>t.name).join(' / ');
+      return `<div class="pk-row" onclick="openPlanDialog('item',${it.id})">
+        <span class="dot" style="background:${it.color}"></span>
+        <span class="grow" style="min-width:0">
+          <div class="row" style="gap:6px;align-items:baseline">
+            <span class="pk-name grow" style="min-width:0">${it.name}</span>
+            <span class="pk-val" style="color:${i.targetMin>0?it.color:'#A8A29A'}">${i.targetMin>0?'目标 '+human(i.targetMin*60000):'未设目标'}</span>
+          </div>
+          <div class="pk-sub">${tagNames||'未分类'} · ${i.n} 次 · 已用 ${used(i.ms)}</div>
+        </span>
+        <span class="pk-go">›</span>
+      </div>`;
+    }).join('');
+  }
+  const emptyHint = k==='tag' ? '还没有标签，先去「事项」页建一个。' : '还没有事项，先去「事项」页建一个。';
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>新增计划 · ${label}</h3>
+      <div class="seg" style="margin:12px 0 8px">
+        <div class="${k==='tag'?'on':''}" onclick="openPlanPicker('tag')">按标签</div>
+        <div class="${k==='item'?'on':''}" onclick="openPlanPicker('item')">按具体事项</div>
+      </div>
+      <div class="small" style="margin-bottom:4px">点一行设定时长，已有目标的可在这里改</div>
+      <div class="pk-list">${list || `<div class="hint">${emptyHint}</div>`}</div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">关闭</button>
+      </div>
+    </div>`);
+}
+function openPlanDialog(kind, refId){
+  const type = state.planPeriod;
+  const {key, label} = periodRange(type, state.planAnchor);
+  if (isClosed(type, key)){ toast('本期已归档，计划目标不能再改'); return; }
+  const isItem = kind === 'item';
+  const ent = isItem ? itemById(refId) : tagById(refId);
+  if (!ent) return;
+  const cur = state.plans.find(p=>p.type===type && p.key===key && p.kind===kind && p.refId===refId);
+  const hours = cur ? cur.minutes/60 : 0;
+  const presets = type==='month' ? [5,10,20,40,80]
+                : type==='year'  ? [50,100,200,400,800]
+                : [500,1000,2000,3000,5000];
+  let parentHint = '';
+  if (isItem){
+    const tagPlan = state.plans.find(p=>p.type===type && p.key===key && p.kind==='tag' && (ent.tagIds||[]).includes(p.refId));
+    const tag = tagPlan ? tagById(tagPlan.refId) : ((ent.tagIds||[]).length ? tagById(ent.tagIds[0]) : null);
+    if (tag){
+      parentHint = `<div class="small" style="line-height:1.7;margin-bottom:12px">
+        属于标签「${tag.name}」${tagPlan?`，该标签本期目标 ${human(tagPlan.minutes*60000)}`:'（该标签本期没设目标）'}。
+        事项目标只算它自己的进度，不会重复计入总目标。
+      </div>`;
+    }
+  }
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>「${ent.name}」${label}计划 <span class="small" style="font-weight:400">· ${isItem?'事项':'标签'}</span></h3>
+      ${parentHint}
+      <div class="field">
+        <label>计划时长（小时，可填小数，0.5 = 30 分钟）</label>
+        <input class="input" id="plan-hours" type="number" inputmode="decimal" step="0.5"
+               value="${hours>0?hours:''}" placeholder="比如 ${type==='five'?'2000':type==='year'?'200':'40'}" />
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        ${presets.map(h=>`<button class="chip" onclick="document.getElementById('plan-hours').value=${h}">${h} 小时</button>`).join('')}
+      </div>
+      <div class="small" style="line-height:1.7;margin-bottom:6px">
+        留空或 0 = 取消这个${isItem?'事项':'标签'}的计划。计划只影响进度显示，不限制计时。
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn" onclick="savePlan('${kind}',${refId})">保存</button>
+      </div>
+    </div>`);
+  setTimeout(()=>document.getElementById('plan-hours').focus(), 60);
+}
+function savePlan(kind, refId){
+  const type = state.planPeriod;
+  const key = periodRange(type, state.planAnchor).key;
+  if (isClosed(type, key)){ closeDialog(); toast('本期已归档，计划目标不能再改'); return; }
+  const v = parseFloat(document.getElementById('plan-hours').value);
+  const minutes = (isNaN(v) || v<=0) ? 0 : Math.round(v*60);
+  const idx = state.plans.findIndex(p=>p.type===type && p.key===key && p.kind===kind && p.refId===refId);
+  if (minutes<=0){
+    if (idx>=0) state.plans.splice(idx,1);
+    toast('已清除该'+(kind==='item'?'事项':'标签')+'的计划');
+  } else {
+    if (idx>=0) state.plans[idx].minutes = minutes;
+    else state.plans.push({type, key, kind, refId, minutes});
+    ensurePlanDoc(type, key);
+    toast('已设定 ' + human(minutes*60000));
+  }
+  closeDialog(); render();
+}
+
+/* ---- 到期结束 → 写总结 → 归档 ---- */
+let pendingSnap = null;
+function openClosePlanDialog(){
+  const type = state.planPeriod;
+  const {key, label} = periodRange(type, state.planAnchor);
+  const p = computePlan(type, state.planAnchor);
+  if (p.totalTargetMin<=0 && p.totalUsed<=0){ toast('本期还没有计划或记录'); return; }
+  pendingSnap = snapshotOf(p);
+  const s = pendingSnap, pc = pctOf(s);
+  const doc = planDoc(type, key);
+  const rowHtml = s.rows.filter(r=>r.targetMin>0 || r.ms>0).map(r=>{
+    const rp = r.targetMin>0 ? Math.round(r.ms/(r.targetMin*60000)*100) : 0;
+    const hit = r.targetMin>0 && r.ms >= r.targetMin*60000;
+    return `<div class="row gap8" style="margin-top:7px">
+      <span class="dot" style="background:${r.color};width:9px;height:9px"></span>
+      <span class="small grow">${r.name}</span>
+      <span class="small">${human(r.ms)} / ${r.targetMin>0?human(r.targetMin*60000):'未定'}</span>
+      <span class="small" style="font-weight:700;width:42px;text-align:right;color:${r.targetMin<=0?'#8A8478':hit?'#2F6B4F':'#A3601A'}">${r.targetMin>0?rp+'%':'—'}</span>
+    </div>`;
+  }).join('');
+
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>结束「${label}」</h3>
+      <div class="card" style="background:var(--surface-variant);box-shadow:none;padding:12px 14px">
+        <div class="row">
+          <span class="small grow">计划完成度</span>
+          <span class="title-sm">${pc}%</span>
+        </div>
+        <div class="small" style="margin-top:2px">计划 ${human(s.totalTargetMin*60000)} · 实际 ${human(s.totalUsed)} · ${s.count} 次</div>
+        <div class="track" style="background:#DED8CB"><i style="width:${Math.min(100,pc)}%;background:var(--primary)"></i></div>
+        ${rowHtml || '<div class="small" style="margin-top:8px">本期没有分标签的目标</div>'}
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>本期总结（做到了什么、差在哪、下期怎么改）</label>
+        <textarea class="input" id="plan-summary" placeholder="比如：工作基本按计划推进；读书只完成一半，主要是晚上被手机占了；下期把读书固定到早上。">${doc&&doc.summary?doc.summary:''}</textarea>
+      </div>
+      <div class="small" style="line-height:1.7">归档后计划目标不能再改，总结可以随时补充；计时记录本身不受影响。</div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn" onclick="saveClosePlan()">保存并归档</button>
+      </div>
+    </div>`);
+  const ta = document.getElementById('plan-summary');
+  if (ta) setTimeout(()=>ta.focus(), 80);
+}
+function saveClosePlan(){
+  const type = state.planPeriod;
+  const key = periodRange(type, state.planAnchor).key;
+  const doc = ensurePlanDoc(type, key);
+  doc.summary = ((document.getElementById('plan-summary')||{}).value || '').trim();
+  doc.snapshot = pendingSnap;
+  doc.status = 'closed';
+  doc.closedAt = Date.now();
+  pendingSnap = null;
+  state.planTab = 'history';
+  closeDialog(); render();
+  toast('已归档到历史计划');
+}
+function writeSummaryFor(type, key){
+  state.planPeriod = type;
+  state.planAnchor = anchorOf({type, key});
+  state.planTab = 'current';
+  render();
+  openClosePlanDialog();
+}
+
+/* ---- 归档详情 ---- */
+function openArchiveDetail(type, key){
+  const d = planDoc(type, key);
+  if (!d) return;
+  const s = docStats(d), pc = pctOf(s);
+  const rowHtml = s.rows.filter(r=>r.targetMin>0 || r.ms>0).map(r=>{
+    const rp = r.targetMin>0 ? Math.round(r.ms/(r.targetMin*60000)*100) : 0;
+    const hit = r.targetMin>0 && r.ms >= r.targetMin*60000;
+    const subs = (r.items||[]).map(x=>{
+      const xt = (x.targetMin||0)*60000;
+      const xp = xt>0 ? Math.round(x.ms/xt*100) : 0;
+      return `<div class="row gap8" style="margin-top:6px;padding-left:14px">
+        <span class="dot" style="background:${x.color};width:7px;height:7px"></span>
+        <span class="small grow">${x.name}</span>
+        <span class="small">${x.n} 次</span>
+        <span class="small" style="font-weight:500">${human(x.ms)}${xt>0?` / ${human(xt)}`:''}</span>
+        <span class="small" style="font-weight:700;min-width:34px;text-align:right;color:${xt<=0?'#8A8478':(x.ms>=xt?'#2F6B4F':'#A3601A')}">${xt>0?xp+'%':'—'}</span>
+      </div>`;
+    }).join('');
+    return `<div class="row gap8" style="margin-top:9px">
+      <span class="dot" style="background:${r.color};width:9px;height:9px"></span>
+      <span class="small grow" style="font-weight:600;color:var(--on-surface)">${r.name}</span>
+      <span class="small">${human(r.ms)} / ${r.targetMin>0?human(r.targetMin*60000):'未定'}</span>
+      <span class="small" style="font-weight:700;width:42px;text-align:right;color:${r.targetMin<=0?'#8A8478':hit?'#2F6B4F':'#A3601A'}">${r.targetMin>0?rp+'%':'—'}</span>
+    </div>${subs}`;
+  }).join('');
+
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>${s.label} · ${unitName(d.type)}</h3>
+      <div class="card" style="background:var(--surface-variant);box-shadow:none;padding:12px 14px">
+        <div class="row">
+          <span class="small grow">完成度</span>
+          <span class="title-sm">${pc}%</span>
+        </div>
+        <div class="small" style="margin-top:2px">计划 ${human(s.totalTargetMin*60000)} · 实际 ${human(s.totalUsed)} · ${s.count} 次</div>
+        <div class="track" style="background:#DED8CB"><i style="width:${Math.min(100,pc)}%;background:var(--primary)"></i></div>
+        ${rowHtml}
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>总结</label>
+        <div class="body" style="line-height:1.75;font-size:14px;white-space:pre-wrap">${d.summary || '<span class="small">这次没写总结</span>'}</div>
+      </div>
+      <div class="small" style="line-height:1.7">归档于 ${dateOnly(d.closedAt)}</div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="askUnarchive('${type}','${key}')">取消归档</button>
+        <button class="tbtn" onclick="openEditSummary('${type}','${key}')">修改总结</button>
+        <button class="tbtn" onclick="closeDialog()">关闭</button>
+      </div>
+    </div>`);
+}
+function openEditSummary(type, key){
+  const d = planDoc(type, key);
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>修改总结</h3>
+      <div class="field">
+        <label>${docStats(d).label} 总结</label>
+        <textarea class="input" id="edit-summary">${d.summary||''}</textarea>
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="openArchiveDetail('${type}','${key}')">返回</button>
+        <button class="tbtn" onclick="saveEditSummary('${type}','${key}')">保存</button>
+      </div>
+    </div>`);
+  setTimeout(()=>{ const t=document.getElementById('edit-summary'); if(t) t.focus(); }, 80);
+}
+function saveEditSummary(type, key){
+  const d = planDoc(type, key);
+  d.summary = ((document.getElementById('edit-summary')||{}).value || '').trim();
+  toast('总结已更新');
+  openArchiveDetail(type, key);
+}
+function askUnarchive(type, key){
+  const s = docStats(planDoc(type, key));
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>取消归档？</h3>
+      <div class="body muted" style="line-height:1.7;font-size:14px">
+        「${s.label}」会回到「待总结」，计划目标重新可编辑，总结内容保留。
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="openArchiveDetail('${type}','${key}')">返回</button>
+        <button class="tbtn" onclick="doUnarchive('${type}','${key}')">取消归档</button>
+      </div>
+    </div>`);
+}
+function doUnarchive(type, key){
+  const d = planDoc(type, key);
+  if (d){ d.status='active'; d.closedAt=null; d.snapshot=null; }
+  state.planTab = 'history';
+  closeDialog(); render();
+  toast('已取消归档，回到待总结');
+}
+
+/* ---------- 备份与恢复 ---------- */
+function backupStats(){
+  const docs = state.planDocs.filter(d=>d.status==='closed');
+  const rows = state.plans.filter(p=>p.minutes>0);
+  const n = t => rows.filter(p=>p.type===t).length;
+  return {
+    tags: state.tags.length,
+    items: state.items.length,
+    links: state.items.reduce((a,i)=>a+((i.tagIds||[]).length),0),
+    records: state.records.length,
+    plans: rows.length,
+    pm: n('month'), py: n('year'), pf: n('five'),
+    pt: rows.filter(p=>p.kind!=='item').length,
+    pi: rows.filter(p=>p.kind==='item').length,
+    docs: docs.length,
+    summaries: docs.filter(d=>(d.summary||'').trim()).length
+  };
+}
+function fmtDT(ts){
+  const d = new Date(ts);
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function openBackupSheet(){
+  const s = backupStats();
+  const last = state.lastBackupAt ? fmtDT(state.lastBackupAt) : '从未备份过';
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>备份与恢复</h3>
+      <div class="small">上次备份：<b style="color:${state.lastBackupAt?'var(--on-surface)':'#A3601A'}">${last}</b></div>
+
+      <div class="card" style="background:var(--surface-variant);box-shadow:none;padding:4px 14px;margin-top:12px">
+        <div class="bk-row"><span class="small grow">标签</span><span class="small">${s.tags} 个</span></div>
+        <div class="bk-row"><span class="small grow">事项</span><span class="small">${s.items} 个 · ${s.links} 条标签关联</span></div>
+        <div class="bk-row"><span class="small grow">计时记录</span><span class="small">${s.records} 条</span></div>
+        <div class="bk-row"><span class="small grow" style="font-weight:600;color:var(--on-surface)">计划目标</span><span class="small" style="font-weight:600;color:var(--on-surface)">${s.plans} 条 · 标签${s.pt} / 事项${s.pi}</span></div>
+        <div class="bk-row"><span class="small grow" style="font-weight:600;color:var(--on-surface)">计划档案与总结</span><span class="small" style="font-weight:600;color:var(--on-surface)">${s.docs} 份 · ${s.summaries} 份有总结</span></div>
+      </div>
+
+      <div class="small" style="margin-top:10px;line-height:1.7">
+        全部数据打成一个 JSON 文件。换手机后在新手机上装好 App，点「从文件恢复」选中它，标签、事项、记录、<b>计划目标、每期总结和归档状态</b>都会完整还原。
+      </div>
+
+      <div class="row" style="gap:8px;margin-top:12px">
+        <button class="btn" style="flex:1;height:44px" onclick="doExportBackup()">导出备份文件</button>
+        <button class="btn btn-ghost" style="flex:1;height:44px" onclick="askRestore()">从文件恢复</button>
+      </div>
+
+      <div class="card" style="margin-top:14px;padding:12px 14px">
+        <div class="row">
+          <div class="grow">
+            <div style="font-size:14px;font-weight:500">自动备份</div>
+            <div class="small" style="margin-top:2px">每天一次，写到指定文件夹，保留最近 5 份</div>
+          </div>
+          <div class="switch ${state.autoBackup?'on':''}" onclick="toggleAutoBackup()"><i></i></div>
+        </div>
+        ${state.autoBackup ? `
+          <div class="row" style="margin-top:10px">
+            <span class="small grow">备份文件夹</span>
+            <span class="small" style="color:var(--primary);font-weight:600;cursor:pointer" onclick="pickBackupDir()">${state.backupDir || '选择…'}</span>
+          </div>` : ''}
+      </div>
+
+      <div class="small" style="margin-top:10px;line-height:1.7;color:#8A8478">
+        换手机前把备份文件发到微信 / 网盘，别只留在手机里；卸载 App 会连备份一起删掉。
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">关闭</button>
+      </div>
+    </div>`);
+}
+function doExportBackup(){
+  state.lastBackupAt = Date.now();
+  const d = new Date();
+  const name = 'TimeBook-备份-'+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())
+             +'-'+pad(d.getHours())+pad(d.getMinutes())+'.json';
+  openBackupSheet();
+  toast('已导出 ' + name);
+}
+function toggleAutoBackup(){
+  state.autoBackup = !state.autoBackup;
+  if (state.autoBackup && !state.backupDir) state.backupDir = '内部存储/TimeBook';
+  openBackupSheet();
+  toast(state.autoBackup ? '已开启自动备份' : '已关闭自动备份');
+}
+function pickBackupDir(){
+  state.backupDir = '内部存储/TimeBook';
+  openBackupSheet();
+  toast('已选择 内部存储/TimeBook');
+}
+function askRestore(){
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>从文件恢复？</h3>
+      <div class="body" style="font-size:14px;line-height:1.7">
+        恢复会用文件里的数据<b>整体覆盖</b>本机的标签、事项、记录、计划目标和计划总结，当前数据不可恢复。
+        <br><br>建议先「导出备份」把现在这份留一份，再导入。
+      </div>
+      <div class="small" style="margin-top:8px">只认 TimeBook 导出的 .json 文件。</div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="openBackupSheet()">返回</button>
+        <button class="tbtn danger" onclick="doRestore()">选择文件并覆盖</button>
+      </div>
+    </div>`);
+}
+function doRestore(){
+  closeDialog();
+  toast('原型不真的读文件；正式 App 选文件后整体覆盖并提示恢复了多少条');
+}
+
+/* ---------- 事项页 ---------- */
+function viewItems(){
+  const now = Date.now();
+  const filterId = state.itemFilterTag || 0;
+  const visible = filterId ? state.items.filter(i=>(i.tagIds||[]).includes(filterId)) : state.items;
+  const active = visible.filter(i=>!i.archived);
+  const archived = visible.filter(i=>i.archived);
+  const curTag = filterId ? tagById(filterId) : null;
+  const totalFor = it => state.records.filter(r=>r.itemId===it.id)
+      .reduce((a,r)=>a + ((r.end==null?now:r.end) - r.start), 0);
+
+  const rowOf = it => `
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 4px 10px 16px">
+      <span class="dot" style="background:${it.color}"></span>
+      <div class="grow" onclick="openItemDialog(${it.id})" style="cursor:pointer">
+        <div style="font-size:15px;font-weight:500">${it.name}</div>
+        ${itemTagChips(it)}
+        <div class="small ellipsis" style="margin-top:2px">累计 ${human(totalFor(it))}${it.targetMin?' · 目标 '+it.targetMin+' 分':''}${it.note?' · '+it.note:''}</div>
+      </div>
+      <div class="del-ic" onclick="openItemDialog(${it.id})">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20h4L20 8l-4-4L4 16v4z"/></svg>
+      </div>
+      <div class="del-ic" onclick="toggleArchive(${it.id})">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18v4H3zM5 10v9h14v-9"/></svg>
+      </div>
+      <div class="del-ic" onclick="askDeleteItem(${it.id})">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+      </div>
+    </div>`;
+
+  return `
+    <div class="pad" style="padding-top:12px">
+      <div style="font-size:24px;font-weight:600">事项</div>
+      <div class="small" style="margin-top:2px">标签归类，事项在标签下面；一件事可以挂多个标签</div>
+      <div class="row" style="gap:4px;margin-top:6px">
+        <button class="tbtn" onclick="openBackupSheet()">备份与恢复</button>
+        <span class="grow"></span>
+        <button class="tbtn" onclick="openTagDialog(null)">＋ 标签</button>
+      </div>
+    </div>
+    <div class="hrow" style="margin-top:6px">
+      <div class="filterchip ${filterId===0?'sel':''}"
+           style="${filterId===0?'background:var(--primary-container);color:#173B28':''}"
+           onclick="setItemFilter(0)">全部</div>
+      ${state.tags.map(t=>`
+        <div class="filterchip ${filterId===t.id?'sel':''}"
+             style="${filterId===t.id?`background:${t.color}22;color:${t.color}`:''}"
+             onclick="setItemFilter(${t.id})">${t.name}</div>`).join('')}
+    </div>
+    ${curTag ? `
+      <div class="pad row" style="margin-top:8px;gap:4px">
+        <span class="small grow">标签「${curTag.name}」</span>
+        <button class="tbtn" onclick="openTagDialog(${curTag.id})">改名/改色</button>
+        <button class="tbtn danger" onclick="askDeleteTag(${curTag.id})">删除标签</button>
+      </div>` : ''}
+    <div class="pad" style="display:flex;flex-direction:column;gap:8px;padding-bottom:110px;margin-top:8px">
+      ${state.items.length === 0 ? `
+        <div class="card" style="background:var(--surface-variant);padding:20px">
+          <div style="font-weight:600">先建标签，再建事项</div>
+          <div class="small" style="margin-top:6px;line-height:1.7">标签是大类（读书 / 工作 / 运动），事项是具体的事（三体 / 周报 / 晨跑）。<br>先点右上角「＋ 标签」建一个，再点右下角「新建事项」。</div>
+        </div>` : ''}
+      ${state.tags.length===0 && state.items.length ? `<div class="small" style="color:var(--error)">还没有标签，下面的事项都没归类。</div>` : ''}
+      ${active.length?`<div class="row" style="justify-content:space-between;margin:6px 0 0"><span class="title-sm">使用中</span><span class="small">${active.length} 项</span></div>`:''}
+      ${active.map(rowOf).join('')}
+      ${archived.length?`<div class="row" style="justify-content:space-between;margin:10px 0 0"><span class="title-sm">已归档</span><span class="small">${archived.length} 项</span></div>`:''}
+      ${archived.map(rowOf).join('')}
+      ${visible.length===0 && state.items.length>0 ? `<div class="hint">这个标签下还没有事项。<br>点右下角「新建事项」，会自动挂到「${curTag?curTag.name:''}」。</div>`:''}
+    </div>
+    <div class="fab" onclick="openItemDialog(null)">
+      <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      新建事项
+    </div>`;
+}
+
+function setItemFilter(id){ state.itemFilterTag = id; render(); }
+
+/* ---------------- 标签弹窗 ---------------- */
+let editingTagId = null;
+function openTagDialog(id){
+  editingTagId = id;
+  const t = id ? tagById(id) : null;
+  const colors = ['#2F6B4F','#3C6E9C','#9B4E6B','#B4803A','#6B5B95','#2E7D6B','#B0563A','#4A5A63'];
+  const cur = t ? t.color : colors[4];
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>${t?'编辑标签':'新建标签'}</h3>
+      <div class="field">
+        <label>标签名称</label>
+        <input class="input" id="tag-name" value="${t?t.name.replace(/"/g,'&quot;'):''}" placeholder="比如：读书" />
+      </div>
+      <div class="field">
+        <label>颜色</label>
+        <div class="color-row">${colors.slice(0,4).map(c=>`<div class="swatch ${c===cur?'sel':''}" data-color="${c}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('')}</div>
+        <div class="color-row" style="margin-bottom:0">${colors.slice(4).map(c=>`<div class="swatch ${c===cur?'sel':''}" data-color="${c}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('')}</div>
+      </div>
+      <div class="field">
+        <label>备注（可选）</label>
+        <input class="input" id="tag-note" value="${t?t.note.replace(/"/g,'&quot;'):''}" placeholder="这个标签代表什么" />
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn" onclick="saveTag()">保存</button>
+      </div>
+    </div>`);
+  setTimeout(()=>document.getElementById('tag-name').focus(), 60);
+}
+function saveTag(){
+  const name = document.getElementById('tag-name').value.trim();
+  const note = document.getElementById('tag-note').value.trim();
+  const sel = document.querySelector('.swatch.sel');
+  const color = sel ? sel.dataset.color : '#6B5B95';
+  if (!name){ toast('标签名称不能为空'); return; }
+  if (editingTagId){
+    const t = tagById(editingTagId);
+    t.name = name; t.note = note; t.color = color;
+    toast('标签已更新');
+  } else {
+    state.tags.push({id: tagSeq++, name, color, note});
+    toast('已新建标签「'+name+'」');
+  }
+  closeDialog(); render();
+}
+function askDeleteTag(id){
+  const t = tagById(id);
+  const n = state.items.filter(i=>(i.tagIds||[]).includes(id)).length;
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>删除标签「${t.name}」？</h3>
+      <div class="body muted" style="line-height:1.7;font-size:14px">
+        ${n>0 ? `有 ${n} 个事项挂着这个标签。删除标签不会删事项和记录，只是它们不再属于这个标签。`
+              : '这个标签下还没有事项，可以安全删除。'}
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn danger" onclick="doDeleteTag(${id})">删除</button>
+      </div>
+    </div>`);
+}
+function doDeleteTag(id){
+  state.tags = state.tags.filter(t=>t.id!==id);
+  state.items.forEach(it=>{ it.tagIds = (it.tagIds||[]).filter(x=>x!==id); });
+  state.plans = state.plans.filter(p=>p.tagId!==id);
+  if (state.itemFilterTag===id) state.itemFilterTag = 0;
+  closeDialog(); toast('已删除标签'); render();
+}
+
+/* =========================================================
+   交互
+   ========================================================= */
+document.getElementById('navbar').addEventListener('click', e=>{
+  const n = e.target.closest('.navitem');
+  if (!n) return;
+  state.tab = n.dataset.tab;
+  render();
+});
+
+function startItem(id){
+  const run = state.records.find(r=>r.end == null);
+  if (run && run.itemId === id){ toast('这件事正在计时'); return; }
+  const t = Date.now();
+  if (run){ run.end = t; }
+  const it = itemById(id);
+  const tgtMin = it.targetMin || 0;
+  state.records.push({
+    id: recSeq++, itemId: id, start: t, end: null, note: '',
+    targetMin: tgtMin,
+    remindAt: tgtMin ? t + tgtMin*60000 : null
+  });
+  toast(run ? `已结束上一件事，开始「${it.name}」` : `开始「${it.name}」${tgtMin?'，目标 '+tgtMin+' 分':''}`);
+  render();
+}
+
+function stopTimer(){
+  const run = state.records.find(r=>r.end == null);
+  if (!run) return;
+  run.end = Math.max(Date.now(), run.start);
+  const dur = run.end - run.start;
+  const tgt = (run.targetMin||0)*60000;
+  const hit = tgt > 0 ? (dur >= tgt ? '，目标达成 ✓' : '，未到目标') : '';
+  render();
+  // 结束后立刻记一句：不写也能关掉，之后在记录页可补
+  openNoteSheet(run.id, true, hit);
+}
+
+/* ---------------- 每次执行的备注 ---------------- */
+const NOTE_WORDS = ['顺利', '被打断', '走神了', '状态不错', '有点累'];
+
+function openNoteSheet(recId, fresh, hint){
+  const r = state.records.find(x=>x.id===recId);
+  if (!r) return;
+  const it = itemById(r.itemId);
+  const running = r.end == null;
+  const dur = (running ? Date.now() : r.end) - r.start;
+  mountDialog(`
+    <div class="sheet" onclick="event.stopPropagation()">
+      <div class="grab"></div>
+      <div class="row gap8">
+        <span class="dot" style="background:${it?it.color:'#9E9E9E'}"></span>
+        <span style="font-size:14.5px;font-weight:600">${it?esc(it.name):'已删除事项'}</span>
+        <span class="grow"></span>
+        <span class="small" style="white-space:nowrap">${hm(r.start)} - ${running?'现在':hm(r.end)}</span>
+      </div>
+      <div class="small" style="margin-top:5px">
+        ${running ? '计时中 · 已用 ' : '已记录 '}<b style="color:var(--on-surface)">${human(dur)}</b>${hint||''}
+      </div>
+      <h3 style="margin-top:12px">${fresh ? '这一段时间在做什么？' : '备注'}</h3>
+      <div class="small" style="margin-top:4px">一句就够，之后回看时更容易想起当时的情况。</div>
+      <div style="margin-top:10px">
+        <textarea class="input" id="note-text" placeholder="比如：改支付回调的 bug，中途被会议打断 20 分钟">${esc(r.note)}</textarea>
+      </div>
+      <div class="note-words">
+        ${NOTE_WORDS.map(w=>`<button class="chip" onclick="appendNoteWord('${w}')">${w}</button>`).join('')}
+      </div>
+      <div class="row gap8" style="margin-top:12px">
+        <button class="btn" onclick="saveRecNote(${recId})">保存备注</button>
+        <button class="btn-mid" onclick="closeDialog()">${fresh?'先不写':'取消'}</button>
+      </div>
+    </div>`, 'sheet-wrap');
+  setTimeout(()=>{
+    const el = document.getElementById('note-text');
+    if (el){
+      el.focus();
+      try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){}
+    }
+  }, 90);
+}
+
+function appendNoteWord(w){
+  const el = document.getElementById('note-text');
+  if (!el) return;
+  const v = el.value.trim();
+  if (v.indexOf(w) >= 0){ el.focus(); return; }
+  el.value = v ? v + '，' + w : w;
+  el.focus();
+  try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){}
+}
+
+function saveRecNote(recId){
+  const r = state.records.find(x=>x.id===recId);
+  if (!r) return;
+  const el = document.getElementById('note-text');
+  const v = (el ? el.value : '').trim();
+  r.note = v;
+  closeDialog(); render();
+  toast(v ? '备注已保存' : '备注已清空');
+}
+
+/* ---------------- 目标时长 & 到点提醒 ---------------- */
+function demoGoal(){
+  const run = state.records.find(r=>r.end == null);
+  if (!run || !run.remindAt) return;
+  showGoalAlert(run);
+}
+
+function showGoalAlert(run){
+  const it = itemById(run.itemId);
+  const used = (run.end == null ? Date.now() : run.end) - run.start;
+  const headline = run.targetMin > 0
+    ? '已达到 ' + run.targetMin + ' 分钟目标'
+    : '到 ' + hm(run.remindAt) + ' 了';
+  const el = document.createElement('div');
+  el.className = 'sysnotif';
+  el.innerHTML = `
+    <div class="ni">⏰</div>
+    <div class="grow" style="min-width:0">
+      <div class="nt ellipsis">时间到 · ${it ? it.name : '当前事项'}</div>
+      <div class="nb ellipsis">${headline}，当前已用 ${human(used)}</div>
+    </div>
+    <div class="na" onclick="this.closest('.sysnotif').remove(); stopTimer()">结算</div>`;
+  document.querySelector('.phone').appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('in'));
+  setTimeout(()=>{
+    el.classList.remove('in');
+    setTimeout(()=>el.remove(), 400);
+  }, 9000);
+  toast('⏰ ' + headline);
+}
+
+function openTargetDialog(){
+  const run = state.records.find(r=>r.end == null);
+  if (!run) { toast('先开始一件事，才能设提醒'); return; }
+  const durMin = run.targetMin || 0;
+  const isClock = run.remindAt && durMin === 0;
+  const clockVal = isClock ? hm(run.remindAt) : '15:00';
+  const presets = [15,25,45,60,90];
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>本次提醒</h3>
+      <div class="row gap8" style="margin-bottom:14px">
+        <button class="chip ${isClock?'':'sel'}" id="mode-dur" onclick="setTargetMode('dur')">做满时长</button>
+        <button class="chip ${isClock?'sel':''}" id="mode-clock" onclick="setTargetMode('clock')">到某时刻</button>
+      </div>
+
+      <div id="pane-dur" style="display:${isClock?'none':'block'}">
+        <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          ${presets.map(p=>`<button class="chip ${p===durMin?'sel':''}" data-min="${p}" onclick="pickTarget(${p})">${p} 分钟</button>`).join('')}
+        </div>
+        <div class="field">
+          <label>自定义分钟数（留空 = 不提醒）</label>
+          <input class="input" id="target-min" type="number" inputmode="numeric" value="${durMin||''}" placeholder="例如 40" />
+        </div>
+      </div>
+
+      <div id="pane-clock" style="display:${isClock?'block':'none'}">
+        <div class="field">
+          <label>提醒时刻</label>
+          <input class="input" type="time" id="target-clock" value="${clockVal}" />
+        </div>
+        <div class="small" style="margin-bottom:8px">若这个时刻今天已经过了，按次日算。</div>
+      </div>
+
+      <div class="small" style="line-height:1.7;margin-bottom:6px">
+        到点发系统通知（声音 + 震动），<b>计时不会停</b>，卡片变成「已超出」，由您决定何时结束。
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="clearTarget()">清除</button>
+        <button class="tbtn" onclick="saveTarget()">保存</button>
+      </div>
+    </div>`);
+}
+
+function setTargetMode(m){
+  document.getElementById('pane-dur').style.display = m === 'dur' ? 'block' : 'none';
+  document.getElementById('pane-clock').style.display = m === 'clock' ? 'block' : 'none';
+  document.getElementById('mode-dur').classList.toggle('sel', m === 'dur');
+  document.getElementById('mode-clock').classList.toggle('sel', m === 'clock');
+}
+
+function pickTarget(p){
+  document.getElementById('target-min').value = p;
+  document.querySelectorAll('#pane-dur .chip').forEach(c=>c.classList.toggle('sel', Number(c.dataset.min)===p));
+}
+
+function saveTarget(){
+  const run = state.records.find(r=>r.end == null);
+  if (!run) { closeDialog(); return; }
+  const durVisible = document.getElementById('pane-dur').style.display !== 'none';
+  if (durVisible){
+    const v = parseInt(document.getElementById('target-min').value, 10);
+    const min = (isNaN(v) || v <= 0) ? 0 : v;
+    run.targetMin = min;
+    run.remindAt = min ? run.start + min*60000 : null;
+  } else {
+    const tv = document.getElementById('target-clock').value;
+    if (!tv) { toast('请选择提醒时刻'); return; }
+    const parts = tv.split(':');
+    const d = new Date(run.start);
+    d.setHours(Number(parts[0]), Number(parts[1]), 0, 0);
+    let at = d.getTime();
+    if (at <= Date.now()) at += DAY;
+    run.targetMin = 0;
+    run.remindAt = at;
+  }
+  run.alerted = false;
+  closeDialog();
+  render();
+  toast(run.remindAt ? '将在 ' + hm(run.remindAt) + ' 提醒您' : '已清除提醒');
+}
+
+function clearTarget(){
+  const run = state.records.find(r=>r.end == null);
+  if (run){ run.targetMin = 0; run.remindAt = null; run.alerted = false; }
+  closeDialog();
+  render();
+  toast('已清除提醒');
+}
+
+function shiftRecordDate(d){
+  state.recordDate += d*DAY;
+  if (state.recordDate > startOfDay(Date.now())) state.recordDate = startOfDay(Date.now());
+  render();
+}
+function setStatMode(m){ state.statMode = m; render(); }
+function shiftStat(d){
+  const a = new Date(state.statAnchor);
+  if (state.statMode === 'day') a.setDate(a.getDate()+d);
+  else if (state.statMode === 'month') a.setMonth(a.getMonth()+d);
+  else a.setFullYear(a.getFullYear()+d);
+  state.statAnchor = a.getTime();
+  render();
+}
+
+/* ---------------- 弹窗 ---------------- */
+function closeDialog(){
+  const d = document.getElementById('dialog-root');
+  if (d) d.remove();
+}
+function mountDialog(html, extraClass){
+  closeDialog();
+  const root = document.createElement('div');
+  root.className = 'overlay' + (extraClass ? ' ' + extraClass : '');
+  root.id = 'dialog-root';
+  root.innerHTML = html;
+  root.addEventListener('click', e=>{ if (e.target === root) closeDialog(); });
+  document.querySelector('.phone').appendChild(root);
+}
+
+let editingItemId = null;
+let pickedTagIds = [];
+let itemDraft = null;
+
+function openItemDialog(id, draft){
+  editingItemId = id;
+  itemDraft = draft || null;
+  const it = id ? itemById(id) : null;
+  const colors = ['#2F6B4F','#3C6E9C','#9B4E6B','#B4803A','#6B5B95','#2E7D6B','#B0563A','#4A5A63'];
+  const cur = draft ? draft.color : (it ? it.color : colors[0]);
+  pickedTagIds = draft ? draft.tagIds.slice()
+    : (it ? (it.tagIds||[]).slice()
+    : (state.itemFilterTag ? [state.itemFilterTag] : []));
+  const name = draft ? draft.name : (it ? it.name : '');
+  const note = draft ? draft.note : (it ? it.note : '');
+  const target = draft ? draft.targetMin : (it && it.targetMin ? it.targetMin : '');
+
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>${it?'编辑事项':'新建事项'}</h3>
+      <div class="field">
+        <label>事项名称（具体的那件事）</label>
+        <input class="input" id="item-name" value="${name.replace(/"/g,'&quot;')}" placeholder="比如：《三体》" />
+      </div>
+      <div class="field">
+        <div class="row" style="justify-content:space-between">
+          <label style="margin:0">标签（可多选）</label>
+          <span style="font-size:12px;color:var(--primary);font-weight:600;cursor:pointer" onclick="document.getElementById('inline-tag-name').focus()">＋ 新建标签</span>
+        </div>
+        ${state.tags.length ? `
+          <div style="margin-top:8px">
+            ${state.tags.map(t=>`<span class="tagpick ${pickedTagIds.includes(t.id)?'sel':''}"
+                 style="${pickedTagIds.includes(t.id)?`border-color:${t.color};background:${t.color}1f;color:${t.color}`:''}"
+                 onclick="togglePickTag(${t.id})">${t.name}</span>`).join('')}
+          </div>` : `<div class="small" style="margin-top:8px">还没有标签。点右上角「＋ 新建标签」建一个，比如「读书」。</div>`}
+        <div class="row gap6" style="margin-top:6px">
+          <input class="input" id="inline-tag-name" placeholder="新标签名，如 读书" style="height:38px" />
+          <button class="tbtn" onclick="addTagInline()">加</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>默认目标时长（分钟，留空表示不限）</label>
+        <input class="input" id="item-target" type="number" inputmode="numeric" value="${target||''}" placeholder="例如 45" />
+      </div>
+      <div class="field">
+        <label>颜色</label>
+        <div class="color-row">${colors.slice(0,4).map(c=>`<div class="swatch ${c===cur?'sel':''}" data-color="${c}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('')}</div>
+        <div class="color-row" style="margin-bottom:0">${colors.slice(4).map(c=>`<div class="swatch ${c===cur?'sel':''}" data-color="${c}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('')}</div>
+      </div>
+      <div class="field">
+        <label>备注（可选）</label>
+        <input class="input" id="item-note" value="${note.replace(/"/g,'&quot;')}" placeholder="说明或目标" />
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn" onclick="saveItem()">保存</button>
+      </div>
+    </div>`);
+  setTimeout(()=>document.getElementById('item-name').focus(), 60);
+}
+
+function collectItemDraft(){
+  const sel = document.querySelector('.swatch.sel');
+  const t = parseInt((document.getElementById('item-target')||{}).value, 10);
+  return {
+    name: (document.getElementById('item-name')||{}).value || '',
+    note: (document.getElementById('item-note')||{}).value || '',
+    targetMin: (isNaN(t)||!t||t<=0) ? 0 : t,
+    color: sel ? sel.dataset.color : '#2F6B4F',
+    tagIds: pickedTagIds.slice()
+  };
+}
+
+function togglePickTag(id){
+  const i = pickedTagIds.indexOf(id);
+  if (i>=0) pickedTagIds.splice(i,1); else pickedTagIds.push(id);
+  const d = collectItemDraft();
+  openItemDialog(editingItemId, d);
+}
+
+function addTagInline(){
+  const input = document.getElementById('inline-tag-name');
+  const name = input ? input.value.trim() : '';
+  if (!name){ toast('先填一个标签名'); return; }
+  if (state.tags.some(t=>t.name===name)){ toast('已经有同名标签了'); return; }
+  const colors = ['#2F6B4F','#3C6E9C','#9B4E6B','#B4803A','#6B5B95','#2E7D6B','#B0563A','#4A5A63'];
+  const color = colors[state.tags.length % colors.length];
+  const id = tagSeq++;
+  state.tags.push({id, name, color, note:''});
+  const d = collectItemDraft();
+  d.tagIds = d.tagIds.concat([id]);
+  toast('已新建标签「'+name+'」，并勾选上');
+  openItemDialog(editingItemId, d);
+}
+
+function pickColor(c){
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('sel', s.dataset.color===c));
+}
+function saveItem(){
+  const d = collectItemDraft();
+  const name = d.name.trim();
+  if (!name){ toast('事项名称不能为空'); return; }
+  if (d.tagIds.length===0){ toast('至少选一个标签，比如「读书」「工作」'); return; }
+  if (editingItemId){
+    const it = itemById(editingItemId);
+    it.name = name; it.note = d.note.trim(); it.color = d.color;
+    it.targetMin = d.targetMin; it.tagIds = d.tagIds.slice();
+    toast('事项已更新');
+  } else {
+    state.items.push({id: itemSeq++, name, color: d.color, note: d.note.trim(),
+      archived:false, targetMin: d.targetMin, tagIds: d.tagIds.slice()});
+    toast('已新建事项「'+name+'」' + (d.targetMin?'，默认目标 '+d.targetMin+' 分':''));
+  }
+  closeDialog(); render();
+}
+
+function toggleArchive(id){
+  const it = itemById(id);
+  it.archived = !it.archived;
+  toast(it.archived ? `「${it.name}」已归档，历史记录保留` : `「${it.name}」已恢复`);
+  render();
+}
+function askDeleteItem(id){
+  const it = itemById(id);
+  const related = state.records.filter(r=>r.itemId===id).length;
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>删除事项「${it.name}」？</h3>
+      <div class="body muted" style="line-height:1.7;font-size:14px">
+        ${related>0
+          ? `该事项下有 ${related} 条记录，会一并删除，且不可恢复。<br><br>如果只是不想再计时，建议用「归档」，历史统计仍然保留。`
+          : '该事项还没有任何记录，可以安全删除。'}
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn danger" onclick="doDeleteItem(${id})">删除</button>
+      </div>
+    </div>`);
+}
+function doDeleteItem(id){
+  state.records = state.records.filter(r=>r.itemId!==id);
+  state.items = state.items.filter(i=>i.id!==id);
+  closeDialog(); toast('已删除事项及其记录'); render();
+}
+
+/* ---------------- 记录弹窗 ---------------- */
+let editingRecId = null;
+function openRecordDialog(recId){
+  editingRecId = recId;
+  const r = recId ? state.records.find(x=>x.id===recId) : null;
+  const active = state.items.filter(i=>!i.archived || (r && i.id===r.itemId));
+  const curItem = r ? r.itemId : (active[0] ? active[0].id : null);
+  const d = r ? new Date(r.start) : new Date();
+  const dateStr = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const startStr = r ? hm(r.start) : '08:00';
+  const endStr = r ? (r.end==null ? '' : hm(r.end)) : '09:00';
+
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>${r?'编辑记录':'补录时间'}</h3>
+
+      <div class="field">
+        <label>事项</label>
+        <button class="selectbtn" onclick="togglePicker()">
+          <span id="sel-item-name">${itemById(curItem)?itemById(curItem).name:'请选择事项'}</span>
+        </button>
+        <div class="pickerlist" id="picker" style="display:none">
+          ${active.map(it=>`<div onclick="pickItem(${it.id},'${it.name}')">
+            <span class="dot" style="display:inline-block;background:${it.color};margin-right:8px"></span>${it.name}
+          </div>`).join('')}
+        </div>
+        <input type="hidden" id="sel-item" value="${curItem||''}" />
+      </div>
+
+      <div class="field">
+        <label>日期</label>
+        <input class="input" type="date" id="rec-date" value="${dateStr}" />
+      </div>
+
+      <div class="row gap8">
+        <div class="field grow" style="margin-bottom:0">
+          <label>开始</label>
+          <input class="input" type="time" id="rec-start" value="${startStr}" />
+        </div>
+        <div class="field grow" style="margin-bottom:0">
+          <label>结束</label>
+          <input class="input" type="time" id="rec-end" value="${endStr}" placeholder="进行中" />
+        </div>
+      </div>
+
+      <div id="rec-hint" class="small" style="margin:12px 0 14px;color:var(--primary)"></div>
+
+      <div class="field">
+        <label>备注（可选，建议记一句当时的情况）</label>
+        <input class="input" id="rec-note" value="${r?esc(r.note):''}" placeholder="比如：和客户对需求，改了三版" />
+      </div>
+
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn" onclick="saveRecord()">保存</button>
+      </div>
+    </div>`);
+
+  ['rec-date','rec-start','rec-end'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', updateRecHint);
+  });
+  updateRecHint();
+}
+function togglePicker(){
+  const p = document.getElementById('picker');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function pickItem(id, name){
+  document.getElementById('sel-item').value = id;
+  document.getElementById('sel-item-name').textContent = name;
+  document.getElementById('picker').style.display = 'none';
+}
+function readRecTimes(){
+  const date = document.getElementById('rec-date').value;
+  const s = document.getElementById('rec-start').value;
+  const e = document.getElementById('rec-end').value;
+  if (!date || !s) return null;
+  const start = new Date(date+'T'+s+':00').getTime();
+  let end = e ? new Date(date+'T'+e+':00').getTime() : null;
+  if (end != null && end < start) end += DAY;
+  return {start, end};
+}
+function updateRecHint(){
+  const t = readRecTimes();
+  const el = document.getElementById('rec-hint');
+  if (!t){ el.textContent = '请填写日期和开始时间'; el.style.color = 'var(--error)'; return; }
+  if (t.end == null){ el.textContent = '留空结束时间 = 这条记录一直在计时'; el.style.color = 'var(--on-surface-variant)'; return; }
+  const dur = t.end - t.start;
+  if (dur <= 0){ el.textContent = '结束时间必须晚于开始时间'; el.style.color = 'var(--error)'; }
+  else { el.textContent = '时长 ' + human(dur) + (t.end - t.start > DAY/2 ? '（次日结束）' : ''); el.style.color = 'var(--primary)'; }
+}
+function saveRecord(){
+  const itemId = Number(document.getElementById('sel-item').value);
+  const note = document.getElementById('rec-note').value.trim();
+  const t = readRecTimes();
+  if (!itemId){ toast('请先选择事项'); return; }
+  if (!t){ toast('请填写日期和开始时间'); return; }
+  if (t.end != null && t.end <= t.start){ toast('结束时间必须晚于开始时间'); return; }
+
+  if (editingRecId){
+    const r = state.records.find(x=>x.id===editingRecId);
+    r.itemId = itemId; r.start = t.start; r.end = t.end; r.note = note;
+  } else {
+    const id = recIdNext();
+    state.records.push({id, itemId, start: t.start, end: t.end, note});
+    if (t.end) toast('已补录 ' + human(t.end - t.start));
+  }
+  closeDialog(); render();
+}
+function recIdNext(){ return Math.max(0, ...state.records.map(r=>r.id)) + 1; }
+
+function askDeleteRecord(id){
+  const r = state.records.find(x=>x.id===id);
+  const it = itemById(r.itemId);
+  mountDialog(`
+    <div class="dialog" onclick="event.stopPropagation()">
+      <h3>删除这条记录？</h3>
+      <div class="body muted" style="line-height:1.7;font-size:14px">
+        ${it?it.name:'未知事项'}　${hm(r.start)} - ${r.end==null?'进行中':hm(r.end)}，时长 ${human((r.end==null?Date.now():r.end)-r.start)}。删除后不可恢复。
+      </div>
+      <div class="dialog-actions">
+        <button class="tbtn plain" onclick="closeDialog()">取消</button>
+        <button class="tbtn danger" onclick="doDeleteRecord(${id})">删除</button>
+      </div>
+    </div>`);
+}
+function doDeleteRecord(id){
+  state.records = state.records.filter(r=>r.id!==id);
+  closeDialog(); toast('记录已删除'); render();
+}
+
+/* 秒表 & 提醒进度刷新 */
+setInterval(()=>{
+  const run = state.records.find(r=>r.end == null);
+  if (!run) return;
+
+  const used = Date.now() - run.start;
+  const at = run.remindAt;
+  const goalTotal = at ? (at - run.start) : 0;
+
+  // 到点提醒：无论停留在哪个页签都要触发（正式版由后台服务负责，锁屏也能响）
+  if (at && used >= goalTotal && !run.alerted){
+    run.alerted = true;
+    showGoalAlert(run);
+    render();
+  }
+
+  if (state.tab !== 'timer') return;
+  const el = document.getElementById('clock');
+  if (!el) return;
+  el.textContent = clock(used);
+  if (!at) return;
+
+  const over = used >= goalTotal;
+  const bar = document.getElementById('goal-bar');
+  const remain = document.getElementById('remain');
+  if (bar) bar.style.width = Math.min(100, used/goalTotal*100) + '%';
+  if (remain) {
+    remain.textContent = over
+      ? '已超出 ' + clock(used-goalTotal).slice(3)
+      : '还剩 ' + clock(goalTotal-used).slice(3);
+  }
+}, 1000);
+
+/* 自适应缩放 */
+function fit(){
+  const s = Math.min(1, (window.innerHeight - 24) / 844);
+  const stage = document.getElementById('stage');
+  stage.style.transform = 'scale(' + s + ')';
+  stage.style.height = (844*s) + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+
+render();
+</script>
+</body>
+</html>
