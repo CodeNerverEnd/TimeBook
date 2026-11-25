@@ -61,12 +61,14 @@ echo "Release 已创建：$TAG"
 
 echo "== 5/5 上传 Windows exe =="
 if [ -f "$EXE" ]; then
+  # 用规范英文名上传：GitHub 对 URL 里的中文名会返回 400，且会丢字符
+  ASSET_NAME="TimeBook-${TAG#v}-Windows.exe"
   curl -sS -f -X POST \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Content-Type: application/octet-stream" \
     --data-binary "@$EXE" \
-    "${UPLOAD_URL}?name=$(basename "$EXE")" > /dev/null
-  echo "exe 已上传（$(du -h "$EXE" | cut -f1)）"
+    "${UPLOAD_URL}?name=${ASSET_NAME}" > /dev/null
+  echo "exe 已上传（$(du -h "$EXE" | cut -f1)），文件名 $ASSET_NAME"
 else
   echo "警告：未找到 $EXE，跳过"
 fi
